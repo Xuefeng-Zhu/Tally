@@ -1,11 +1,11 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {createHmac} from 'node:crypto';
-import {CONTEXT,DEFAULT_PROFILE,type SourceInput} from '../packages/contracts/index.js';import {MODEL} from '../packages/contracts/model.js';
+import {CONTEXT,DEFAULT_PROFILE,type SourceInput} from '../packages/contracts/index.js';
 import {BoxAdapter} from '../services/providers/box.js';
 import {MemoryStore} from '../services/storage/store.js';import {fixtureSource} from '../fixtures/sources.js';
 import {createProductionRuntime} from '../services/runtime/production.js';import {createApiLambda} from '../services/api/handler.js';import {createWorkerLambda} from '../services/worker/handler.js';
 import type {LiveWorkerEnvelope} from '../services/worker/live-worker.js';
 import {DomainError} from '../services/worker/core.js';
-const env={LIVE_PROVIDERS_ENABLED:'true',TALLY_APPROVED_LIVE_FLOW:'true',TALLY_EXECUTION_MODE:'aws',TALLY_TABLE_NAME:'tally-test-state',TALLY_QUEUE_URL:'https://sqs.us-east-1.amazonaws.com/123456789012/tally-test',BOX_INPUT_FOLDER_ID:'12',BOX_WEBHOOK_ID:'34',TALLY_DEMO_TENANT_ID:CONTEXT.business_id,TALLY_TAX_YEAR:'2025',TALLY_RULE_SET_ID:CONTEXT.rule_set_id,AWS_REGION:MODEL.region,BEDROCK_MODEL_ID:MODEL.model_id,TALLY_EXPLANATION_ADAPTER:'strands'};
+const env={LIVE_PROVIDERS_ENABLED:'true',TALLY_APPROVED_LIVE_FLOW:'true',TALLY_EXECUTION_MODE:'aws',TALLY_TABLE_NAME:'tally-test-state',TALLY_QUEUE_URL:'https://sqs.us-east-1.amazonaws.com/123456789012/tally-test',BOX_INPUT_FOLDER_ID:'12',BOX_WEBHOOK_ID:'34',TALLY_DEMO_TENANT_ID:CONTEXT.business_id,TALLY_TAX_YEAR:'2025',TALLY_RULE_SET_ID:CONTEXT.rule_set_id,AWS_REGION:'us-east-1',OPENROUTER_MODEL_ID:'openai/gpt-6-luna',TALLY_EXPLANATION_ADAPTER:'openrouter'};
 const source=(id:string):SourceInput=>{const s=fixtureSource(id==='100'?'fixture-A':'fixture-B');return {...s,file_id:id,folder_id:'12',source_url:`https://app.box.com/file/${id}`,facts:s.facts.map(f=>({...f,fact_id:`box-${id}:${f.fact_id}`,source:{...f.source,kind:'box_document',file_id:id}}))};};
 function setup(){const store=new MemoryStore(),messages:LiveWorkerEnvelope[]=[];let keyReads=0,boxReads=0,extracts=0,explanations=0;let failSend=false;
  const sources={prepare:async(id:string)=>({...source(id),business_name:null,facts:[]}),extract:async(observation:SourceInput)=>{extracts++;return source(observation.file_id);}};

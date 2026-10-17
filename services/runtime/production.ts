@@ -6,10 +6,12 @@ import {BoxAdapter} from '../providers/box.js';
 import {createBoxSourceProvider} from '../providers/normalize-box.js';
 import {SecretProvider,createBoxTokenProvider} from '../providers/secrets.js';
 import {LiveWorker,type LiveSourceProvider,type LiveWorkerEnvelope} from '../worker/live-worker.js';
-import {explainWithStrands} from '../providers/strands.js';
+import {createOpenRouterExplainer,OPENROUTER_CONFIG} from '../providers/openrouter.js';
+import {createOpenRouterKeySupplier,readOpenRouterPriorSpendUsd} from '../providers/openrouter-key.js';
+import type {SecretReader} from '../providers/secrets.js';
 import {DomainError,type EngineOptions} from '../worker/core.js';
-export type ProductionOverrides={store?:Store;send?:(message:LiveWorkerEnvelope)=>Promise<void>;secrets?:Pick<SecretProvider,'getWebhookKeys'|'getBoxCredentials'>;box?:()=>Promise<ApiBoxReader>;sourceProvider?:LiveSourceProvider;explain?:EngineOptions['explain'];boxAdapterFactory?:(accessToken:string,folderId:string)=>BoxAdapter};
-/** Gate first. Construction performs no secret read, OAuth request, Box extraction or Bedrock call. */
+export type ProductionOverrides={store?:Store;send?:(message:LiveWorkerEnvelope)=>Promise<void>;secrets?:Pick<SecretProvider,'getWebhookKeys'|'getBoxCredentials'>;box?:()=>Promise<ApiBoxReader>;sourceProvider?:LiveSourceProvider;explain?:EngineOptions['explain'];boxAdapterFactory?:(accessToken:string,folderId:string)=>BoxAdapter;openRouterKeyReader?:SecretReader;openRouterFetch?:typeof fetch};
+/** Gate first. Construction performs no secret read, OAuth request, Box extraction or OpenRouter call. */
 export function createProductionRuntime(env:NodeJS.ProcessEnv=process.env,overrides:ProductionOverrides={}){
  assertApprovedLiveFlow(env);
  const table=env.TALLY_TABLE_NAME??'',queueUrl=env.TALLY_QUEUE_URL??'';
@@ -29,6 +31,9 @@ export function createProductionRuntime(env:NodeJS.ProcessEnv=process.env,overri
  }
  const sourceProvider=overrides.sourceProvider??{prepare:async(fileId:string)=>(await boxAndSources()).source.prepare(fileId),extract:async(observation:Parameters<LiveSourceProvider['extract']>[0])=>(await boxAndSources()).source.extract(observation)};
  const api=createLiveApi({store,env,loadKeys:()=>secrets.getWebhookKeys(),send,box:overrides.box??(async()=>(await boxAndSources()).adapter)});
- const explain=overrides.explain??((opportunity,facts)=>explainWithStrands({opportunity,facts},{approvedLiveCall:true,env}));
+ // One explainer instance is retained by the warm worker runtime: at most two calls and $0.50 reserved there.
+ // This process-local guard does not enforce the total project budget across Lambda processes.
+ const describe=overrides.explain?undefined:createOpenRouterExplainer({approvedLiveCall:true,env,getApiKey:createOpenRouterKeySupplier({env,reader:overrides.openRouterKeyReader}),priorSpendUsd:readOpenRouterPriorSpendUsd(env,OPENROUTER_CONFIG.budgetUsd),fetcher:overrides.openRouterFetch});
+ const explain=overrides.explain??((opportunity,facts)=>describe!({opportunity,facts}));
  return {api,worker:new LiveWorker(store,{sourceProvider,enqueue:send,explain}),store};
 }
