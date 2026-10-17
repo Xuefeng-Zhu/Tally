@@ -62,3 +62,17 @@ test('production independently rejects unbound or malformed webhook before touch
   assert.equal(touched,0);
  }
 });
+
+
+test('one SQS source caps normal worker concurrency at2 without an unavailable account reservation',()=>{
+ const worker=template.Resources.WorkerFunction.Properties;
+ assert.equal(worker.ReservedConcurrentExecutions,undefined);
+ assert.equal(template.Globals.Function.ReservedConcurrentExecutions,undefined);
+ assert.deepEqual(Object.keys(worker.Events),['Jobs']);
+ assert.equal(worker.Events.Jobs.Type,'SQS');
+ assert.deepEqual(worker.Events.Jobs.Properties.ScalingConfig,{MaximumConcurrency:2});
+ assert.equal(worker.Events.Jobs.Properties.BatchSize,1);
+ assert.equal(worker.Events.Jobs.Properties.MaximumBatchingWindowInSeconds,0);
+ assert.equal(template.Parameters.LiveProvidersEnabled.Default,'false');
+ assert.equal(template.Parameters.ApprovedLiveFlow.Default,'false');
+});

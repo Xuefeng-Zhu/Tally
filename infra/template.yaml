@@ -526,7 +526,6 @@
           ]
         },
         "Timeout": 120,
-        "ReservedConcurrentExecutions": 2,
         "Environment": {
           "Variables": {
             "TALLY_TABLE_NAME": {
