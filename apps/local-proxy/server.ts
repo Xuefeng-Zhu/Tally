@@ -2,20 +2,26 @@ import http from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {TallyEngine} from '../../services/worker/core.js';
+import {TallyEngine,type EngineOptions} from '../../services/worker/core.js';
+import {localExplanationOptions} from '../../services/runtime/local-explanation.js';
 import {FileStore} from '../../services/storage/file-store.js';
 import {createApi} from '../../services/api/app.js';
 import {readConfiguration} from '../../packages/contracts/configuration.js';
 import {createAwsForwarder} from './signed-upstream.js';
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
-export async function startServer(options:{port?:number;dataPath?:string;webOrigin?:string}={}) {
+export async function startServer(options:{port?:number;dataPath?:string;webOrigin?:string;engineOptions?:EngineOptions}={}) {
  const config=readConfiguration();
  const webOrigin=options.webOrigin??process.env.TALLY_WEB_ORIGIN??'http://127.0.0.1:5173';
  if(!/^http:\/\/(?:127\.0\.0\.1|localhost):[0-9]{1,5}$/.test(webOrigin)||Number(new URL(webOrigin).port)>65535)throw new Error('The configured web origin must be a local HTTP origin.');
  const webOrigins=[webOrigin,webOrigin.replace('127.0.0.1','localhost')];
  const forward=config.mode==='aws'?createAwsForwarder({apiOrigin:config.apiOrigin??'',approvedLiveFlow:process.env.TALLY_APPROVED_LIVE_FLOW==='true'}):null;
  const store=new FileStore(options.dataPath??process.env.TALLY_DATA_PATH??resolve(ROOT,'.data/state.json'));
- const engine=new TallyEngine(store);
+ const engineOptions=options.engineOptions??localExplanationOptions(process.env);
+ if(!forward&&process.env.TALLY_OPENROUTER_ENABLED==='true'&&!options.engineOptions){
+  const persisted=await store.read();
+  if(persisted.pending_evaluation||persisted.jobs.some(job=>['queued','extracting','evaluating','ledger_committed'].includes(job.status)))throw new Error('OPENROUTER_PENDING_WORK_REQUIRES_REVIEW');
+ }
+ const engine=new TallyEngine(store,engineOptions);
  let scheduled=false,working=false;
  async function drain(){if(working)return;working=true;try{await engine.processAll();}catch{console.error('Fixture worker failed. Pending state is retained; use Reconcile.');}finally{working=false;}}
  const enqueue=async()=>{if(!scheduled){scheduled=true;setTimeout(()=>{scheduled=false;void drain();},20);}};
@@ -45,7 +51,7 @@ export async function startServer(options:{port?:number;dataPath?:string;webOrig
  });
  await new Promise<void>((ok,reject)=>{server.once('error',reject);server.listen(options.port??Number(process.env.TALLY_LOCAL_PORT??4318),'127.0.0.1',ok);});
  const address=server.address();const port=typeof address==='object'&&address?address.port:4318;
- // Resume persisted queue jobs after a restart, without a provider call.
+ // Default fixture mode resumes offline jobs. Opted-in inference refuses unfinished persisted work above.
  if(!forward)await enqueue();
  return {server,engine,url:`http://127.0.0.1:${port}`,close:()=>new Promise<void>((ok,reject)=>server.close(e=>e?reject(e):ok()))};
 }

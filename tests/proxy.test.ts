@@ -15,3 +15,8 @@ test('Proxy signs exactly the fixed host and route and cannot follow redirects',
  const captured:unknown[]=[];const proxy=createAwsForwarder({apiOrigin:'https://abc.execute-api.us-east-1.amazonaws.com',approvedLiveFlow:true,signer:{sign:async(request)=>{captured.push(request);return {headers:{authorization:'test-signature'}};}},fetcher:(async(url,options)=>{captured.push({url,options});return new Response('{"ok":true}',{status:202});}) as typeof fetch});
  assert.deepEqual(await proxy('POST','/api/demo/reconcile','{}'),{status:202,body:{ok:true}});assert.equal((captured[0] as {hostname:string}).hostname,'abc.execute-api.us-east-1.amazonaws.com');assert.equal((captured[1] as {options:RequestInit}).options.redirect,'error');
 });
+
+test('Application selects exact OpenRouter Luna and rejects alternate provider/model configuration',()=>{
+ const config=readConfiguration({});assert.equal(config.explanationAdapter,'openrouter');assert.equal(config.explanationModel,'openai/gpt-6-luna');
+ for(const changed of [{TALLY_EXPLANATION_ADAPTER:'strands'},{OPENROUTER_MODEL_ID:'openai/gpt-4.1-nano'},{TALLY_OPENROUTER_ENABLED:'yes'}])assert.throws(()=>readConfiguration(changed));
+});
