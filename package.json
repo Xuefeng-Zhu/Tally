@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22.12.0 <25"
+    "node": ">=22.13.0 <25"
   },
   "scripts": {
     "dev": "tsx scripts/dev.ts",
@@ -12,7 +12,7 @@
     "dev:web": "vite --config apps/web/vite.config.ts",
     "typecheck": "tsc --noEmit",
     "build": "vite build --config apps/web/vite.config.ts",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "node --require ./tests/offline-guard.cjs --import tsx --test tests/*.test.ts",
     "test:browser": "tsx scripts/browser-test.ts",
     "smoke:box": "tsx scripts/smoke-box.ts",
     "smoke:strands": "tsx scripts/smoke-strands.ts",
@@ -28,6 +28,7 @@
     "@aws-sdk/lib-dynamodb": "3.1152.0",
     "@smithy/signature-v4": "5.3.3",
     "@strands-agents/sdk": "1.21.0",
+    "pdfjs-dist": "6.4.299",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

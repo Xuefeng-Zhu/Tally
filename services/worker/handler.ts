@@ -1,13 +1,26 @@
+import {createProductionRuntime} from '../runtime/production.js';
 import {DynamoStore} from '../storage/dynamo-store.js';
 import {TallyEngine} from './core.js';
-import {readConfiguration} from '../../packages/contracts/configuration.js';
-type Event={Records:{messageId:string;body:string}[]};
-/** SQS envelope is a wake-up; authoritative pending jobs and guards live in persistence. */
-export async function handler(event:Event){
- if(process.env.TALLY_EXECUTION_MODE!=='fixture')throw new Error('LIVE_PROVIDER_GATES_PENDING');
- const config=readConfiguration();if(!process.env.TALLY_TABLE_NAME)throw new Error('TALLY_TABLE_NAME_REQUIRED');
- const engine=new TallyEngine(new DynamoStore(process.env.TALLY_TABLE_NAME));
- const batchItemFailures:{itemIdentifier:string}[]=[];
- for(const record of event.Records){try{const message=JSON.parse(record.body);if(message.business_id!==config.context.business_id)throw new Error('TENANT_MISMATCH');await engine.processAll();}catch{batchItemFailures.push({itemIdentifier:record.messageId});}}
- return {batchItemFailures};
+import {CONTEXT} from '../../packages/contracts/index.js';
+import type {LiveWorkerEnvelope,LiveWorkerResult} from './live-worker.js';
+export type SqsEvent={Records:{messageId:string;body:string}[]};
+export function createWorkerLambda(options:{env?:NodeJS.ProcessEnv;runtimeFactory?:()=>{worker:{handle:(envelope:LiveWorkerEnvelope)=>Promise<LiveWorkerResult>}}}={}){
+ let worker:{handle:(envelope:LiveWorkerEnvelope)=>Promise<LiveWorkerResult>}|undefined;
+ return async(event:SqsEvent)=>{
+  const env=options.env??process.env,batchItemFailures:{itemIdentifier:string}[]=[];
+  for(const record of event.Records){try{
+   const envelope=JSON.parse(record.body) as LiveWorkerEnvelope;
+   if(!envelope||envelope.business_id!==CONTEXT.business_id||!['INGEST','EVALUATE'].includes(envelope.kind))throw new Error('INVALID_ENVELOPE');
+   if(!worker){
+    if(options.runtimeFactory){if(env.LIVE_PROVIDERS_ENABLED!=='true'||env.TALLY_APPROVED_LIVE_FLOW!=='true')throw new Error('LIVE_PROVIDER_GATES_PENDING');worker=options.runtimeFactory().worker;}
+    else if(env.TALLY_EXECUTION_MODE==='fixture'){
+     if(!env.TALLY_TABLE_NAME)throw new Error('RUNTIME_CONFIGURATION_PENDING');const engine=new TallyEngine(new DynamoStore(env.TALLY_TABLE_NAME));
+     worker={handle:async()=>{await engine.processAll();return {status:'completed'};}};
+    }else worker=createProductionRuntime(env).worker;
+   }
+   await worker.handle(envelope);
+  }catch{batchItemFailures.push({itemIdentifier:record.messageId});}}
+  return {batchItemFailures};
+ };
 }
+export const handler=createWorkerLambda();

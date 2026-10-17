@@ -12,14 +12,19 @@ export type EvaluationSnapshot = { state: State; ledger_rev: number; profile_rev
 export type EngineOptions = {
   now?: () => string;
   resolveSource?: (fileId: string) => SourceInput | Promise<SourceInput>;
+  /** Called only after the durable INGEST lease is won; preparation must never call AI. */
+  extractSource?: (observation: SourceInput) => Promise<SourceInput>;
+  maxIngestAttempts?: number;
+  intakeMode?: 'fixture'|'manual'|'webhook';
   explain?: (opportunity: Opportunity, facts: Fact[]) => Promise<Explanation | ExplanationReceipt>;
-  afterLedgerCommit?: () => Promise<void>;
+  afterLedgerCommit?: (state:State) => Promise<void>;
   uploadUrl?: string | null;
   extractionMode?: 'fixture' | 'live_box_ai';
 };
 const unique = <T>(items: T[]): T[] => [...new Set(items)];
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const currentKey = (state: State) => `${state.ledger_rev}:${state.profile_rev}:${CONTEXT.rule_set_id}`;
+const opportunityFactTypes = new Set(['recorded_payment_amount','recorded_payment_date','payroll_total_hours','payroll_gross_wages','coverage_start','coverage_end','stated_total_premium','stated_employer_contribution','stated_employee_contribution']);
 const activeStates = new Set(['ledger_committed','evaluating','completed']);
 function validDocumentForFact(state: State, fact: Fact): boolean {
   // An unchanged alias remains a valid reference to a canonical fact set if its first source changes.
@@ -122,7 +127,7 @@ function validateSource(source:SourceInput,profile:Profile|null):void {
 /** Evaluate evidence readiness only. The synthetic partial records cannot resolve annual eligibility. */
 export function evaluateSnapshot(snapshot: EvaluationSnapshot): Opportunity | null {
   const state = snapshot.state; const facts = usable(state);
-  if (!state.profile || (!facts.length && !state.facts.some(fact=>fact.verification_state==='needs_review'))) return null;
+  if (!state.profile || (!facts.some(fact=>opportunityFactTypes.has(fact.fact_type)) && !state.facts.some(fact=>opportunityFactTypes.has(fact.fact_type) && fact.verification_state==='needs_review'))) return null;
   const payment = factsOf(facts,'recorded_payment_amount');
   const payroll = facts.filter(fact => ['payroll_total_hours','payroll_gross_wages'].includes(fact.fact_type));
   const period = coverage(facts); const components = premium(facts);
@@ -144,6 +149,15 @@ export function evaluateSnapshot(snapshot: EvaluationSnapshot): Opportunity | nu
   const stage = requiresReview ? 'needs_review' : hasCoverage ? 'evidence_updated' : 'needs_coverage_statement';
   const share = single(facts,'reported_employer_share_basis_points');
   return { opportunity_id:CONTEXT.opportunity_id,business_id:CONTEXT.business_id,tax_year:2025,rule_set_id:CONTEXT.rule_set_id,revision:snapshot.card_revision+1,ledger_rev:snapshot.ledger_rev,profile_rev:snapshot.profile_rev,evaluation_key:snapshot.evaluation_key,assessment:'potential_opportunity',stage,annual_readiness:'annual_requirements_unresolved',synthetic_data:true,historical_demo:true,evidence_checks,annual_requirements:ANNUAL_IDS.map(id => check(id,'unknown',[],'Annual evidence and applicable exclusions or program conditions remain unresolved.')),estimate:{status:'unavailable',amount_cents:null,reason:'Annual requirements remain unresolved; no eligibility conclusion or credit estimate is available.'},next_action:requiresReview?{id:'review_conflict',label:'Review evidence that needs attention'}:hasCoverage?{id:'review_remaining_requirements',label:'Review remaining requirements'}:{id:'upload_coverage_statement',label:'Upload coverage statement'},reported_employer_share_basis_points:share ? Number(share.value):null,summary:requiresReview?'Some evidence needs review. Annual eligibility and any credit amount remain unresolved.':hasCoverage?'Coverage and stated premium components are supported. Annual requirements and payment matching remain unresolved.':'Source-supported business records suggest a potential opportunity. Add a coverage statement to update the evidence.',fact_ids:unique(facts.map(fact=>fact.fact_id)),rule_source_ids:['irc-45r','form-8941-instructions-2025'],execution:{...state.execution,explanation_mode:'fixture'} };
+}
+
+export type IngestOutcome={status:'committed'|'duplicate'|'busy'|'needs_review'|'source_changed';code?:string;currentObservation?:SourceInput};
+class SourceObservationChanged extends Error {readonly code='SOURCE_OBSERVATION_CHANGED';constructor(readonly currentObservation:SourceInput){super('SOURCE_OBSERVATION_CHANGED');}}
+export function ingestFailure(error:unknown):{code:string;retryable:boolean}{
+  const object=error && typeof error==='object'?error as {code?:unknown;name?:unknown;retryable?:unknown}:{};
+  const code=typeof object.code==='string' && /^[A-Z][A-Z0-9_]{0,99}$/.test(object.code)?object.code:object.name==='AbortError'||object.name==='TimeoutError'?'INGEST_TIMEOUT':'INGEST_PROVIDER_FAILED';
+  const retryable=object.retryable===true || /^(?:BOX_HTTP_(?:408|429|5[0-9]{2})|BOX_.*TIMEOUT|INGEST_TIMEOUT|INGEST_PROVIDER_FAILED|DYNAMO_CAS_RETRY_EXHAUSTED)$/.test(code);
+  return {code,retryable};
 }
 
 export class TallyEngine {
@@ -173,8 +187,9 @@ export class TallyEngine {
   }
   /** Observation persists the newest source version before any slow extraction starts. */
   async observeSource(source: SourceInput): Promise<boolean> {
-    this.sources.set(`${source.file_id}:${source.file_version_id}`,structuredClone(source));
+    this.sources.set(`${source.file_id}:${source.file_version_id}`,structuredClone(this.options.extractSource?{...source,facts:[]}:source));
     return this.store.transact(state => {
+      state.execution.intake_mode=this.options.intakeMode??state.execution.intake_mode;
       let doc = state.documents.find(item=>item.file_id===source.file_id);
       if (doc && (older(source.file_version_id,doc.file_version_id) || (doc.file_version_id===source.file_version_id && doc.sha256 !== source.sha256))) return false;
       const jobId = `INGEST:${CONTEXT.business_id}:${CONTEXT.extraction_schema_version}:${source.file_id}:${source.file_version_id}:${source.sha256}`;
@@ -197,7 +212,7 @@ export class TallyEngine {
       validateSource(source,state.profile);
       state.execution={...state.execution,extraction_mode:this.options.extractionMode ?? 'fixture'};
       const canonical=state.documents.find(item=>item.file_id!==doc.file_id && item.sha256===source.sha256 && item.accepted_version===item.file_version_id && (activeStates.has(item.status) || item.status==='needs_review')) ?? (state.facts.some(fact=>fact.source.sha256===source.sha256 && fact.extraction_schema_version===CONTEXT.extraction_schema_version) ? doc : undefined);
-      const sourceHasSupport=source.business_name!==null && source.facts.some(fact=>fact.verification_state==='source_supported' && fact.value_state==='known' && fact.source.excerpt_validation==='matched');
+      const sourceHasSupport=source.business_name!==null && source.facts.some(fact=>opportunityFactTypes.has(fact.fact_type) && fact.verification_state==='source_supported' && fact.value_state==='known' && fact.source.excerpt_validation==='matched');
       doc.accepted_version=source.file_version_id;doc.status=sourceHasSupport?'ledger_committed':'needs_review';doc.error=sourceHasSupport?null:'No source-supported business facts were accepted; review this document.';
       let contentChanged=false;
       const previous=state.facts.filter(fact=>fact.source.file_id===source.file_id && fact.verification_state!=='superseded' && fact.source.sha256!==source.sha256);
@@ -273,37 +288,91 @@ export class TallyEngine {
     if(this.running)return this.running;
     this.running=this.runQueue().finally(()=>{this.running=null;});return this.running;
   }
+  /** Process one source job; transient provider failures require a later queue delivery. */
+  async processIngest(fileId:string):Promise<IngestOutcome>{
+    let state=await this.state();
+    if(!state.profile)throw new DomainError('PROFILE_REQUIRED','Save the business profile before processing documents.',409,true);
+    let observed=state.documents.find(doc=>doc.file_id===fileId);
+    if(!observed)throw new DomainError('SOURCE_NOT_OBSERVED','Prepare and observe the source before processing it.',409,true);
+    await this.store.transact(draft=>{const current=draft.documents.find(doc=>doc.file_id===fileId);for(const job of draft.jobs)if(current && job.kind==='INGEST' && job.file_id===fileId && job.file_version_id!==current.file_version_id && !job.committed){job.committed=true;job.status='completed';job.lease_until=null;}});
+    state=await this.state();
+    observed=state.documents.find(doc=>doc.file_id===fileId)!;
+    const job=state.jobs.find(item=>item.kind==='INGEST' && item.file_id===fileId && item.file_version_id===observed.file_version_id);
+    if(!job || job.committed){await this.notifyPendingEvaluation();return {status:'duplicate'};}
+    if(job.status==='failed'||job.status==='needs_review'){await this.notifyPendingEvaluation();return {status:'needs_review',code:job.error??'INGEST_NEEDS_REVIEW'};}
+    const claimed=await this.store.transact(draft=>{
+      const item=draft.jobs.find(item=>item.job_id===job.job_id),doc=draft.documents.find(item=>item.file_id===fileId);
+      if(!item || item.committed || !doc || doc.file_version_id!==job.file_version_id || (item.status!=='queued' && !(['extracting','validating'].includes(item.status) && (item.lease_until??0)<=Date.now())))return false;
+      item.status='extracting';item.attempts++;item.lease_until=Date.now()+120000;doc.status='extracting';return true;
+    });
+    if(!claimed)return {status:'busy'};
+    const attempts=(await this.state()).jobs.find(item=>item.job_id===job.job_id)!.attempts;
+    const configuredAttempts=this.options.maxIngestAttempts??3;
+    const maxAttempts=Number.isSafeInteger(configuredAttempts)&&configuredAttempts>=1?Math.min(configuredAttempts,3):3;
+    if(attempts>maxAttempts){await this.failIngest(fileId,job.file_version_id!,'INGEST_ATTEMPTS_EXHAUSTED');await this.notifyPendingEvaluation();return {status:'needs_review',code:'INGEST_ATTEMPTS_EXHAUSTED'};}
+    try{
+      const observation=this.sources.get(`${fileId}:${job.file_version_id}`)??await(this.options.resolveSource?.(fileId)??fixtureSource(fileId));
+      if(observation.file_id!==fileId || observation.file_version_id!==job.file_version_id || observation.sha256!==observed.sha256){
+        if(observation.file_id!==fileId)throw new DomainError('INVALID_SOURCE_ID','Prepared source does not match its queued file.',422);
+        await this.observeSource(observation);
+        if((await this.state()).documents.find(doc=>doc.file_id===fileId)?.file_version_id===job.file_version_id)throw new DomainError('STALE_SOURCE_OBSERVATION','Preparation returned an older observation than the queued source.',503,true);
+        await this.finishObsolete(job.job_id);return {status:'source_changed',currentObservation:observation};
+      }
+      // Known identical bytes reuse the already validated canonical fact set without another AI call.
+      const canonical=(await this.state()).facts.filter(fact=>fact.source.sha256===observation.sha256 && fact.value_state==='known' && ['source_supported','needs_review','superseded'].includes(fact.verification_state) && fact.source.excerpt_validation==='matched');
+      let source:SourceInput;
+      if(this.options.extractSource && canonical.length){
+        source={...observation,business_name:state.profile!.display_name,facts:canonical.map(fact=>({...structuredClone(fact),source:{...structuredClone(fact.source),file_id:observation.file_id,file_version_id:observation.file_version_id,sha256:observation.sha256}}))};
+      }else source=this.options.extractSource?await this.options.extractSource(observation):observation;
+      if(source.file_id!==observation.file_id || source.file_version_id!==observation.file_version_id || source.sha256!==observation.sha256)throw new SourceObservationChanged(source);
+      const result=await this.commitIngest(source);
+      if(!result.committed){const current=(await this.state()).documents.find(doc=>doc.file_id===fileId);return {status:current?.file_version_id===source.file_version_id?'duplicate':'source_changed'};}
+    }catch(error){
+      const failure=ingestFailure(error);
+      if(failure.code==='BOX_SOURCE_CHANGED' || failure.code==='BOX_FILE_CHANGED_DURING_EXTRACTION' || failure.code==='SOURCE_OBSERVATION_CHANGED'){
+        const latest=(error as {currentObservation?:SourceInput}).currentObservation;
+        if(latest && latest.file_id===fileId){await this.observeSource({...latest,facts:[]});if((await this.state()).documents.find(doc=>doc.file_id===fileId)?.file_version_id!==job.file_version_id){await this.finishObsolete(job.job_id);return {status:'source_changed',currentObservation:{...latest,facts:[]}};}}
+        if(attempts>=maxAttempts){await this.failIngest(fileId,job.file_version_id!,'SOURCE_CHANGED_RETRY_EXHAUSTED');await this.notifyPendingEvaluation();return {status:'needs_review',code:'SOURCE_CHANGED_RETRY_EXHAUSTED'};}
+        await this.releaseIngest(job.job_id,failure.code);throw new DomainError(failure.code,'The document changed. Retry preparation before extracting again.',503,true);
+      }
+      if(failure.retryable && attempts<maxAttempts){await this.releaseIngest(job.job_id,failure.code);throw new DomainError(failure.code,'Document processing is temporarily unavailable.',503,true);}
+      const code=failure.retryable?'INGEST_ATTEMPTS_EXHAUSTED':failure.code;
+      await this.failIngest(fileId,job.file_version_id!,code);await this.notifyPendingEvaluation();return {status:'needs_review',code};
+    }
+    // Queue handoff is deliberately outside extraction error handling. A redelivery resumes this commit.
+    await this.notifyPendingEvaluation();
+    return {status:'committed'};
+  }
+  private async finishObsolete(jobId:string):Promise<void>{await this.store.transact(state=>{const job=state.jobs.find(item=>item.job_id===jobId);if(job){job.committed=true;job.status='completed';job.lease_until=null;}});}
+  private async releaseIngest(jobId:string,code:string):Promise<void>{await this.store.transact(state=>{const job=state.jobs.find(item=>item.job_id===jobId);if(!job || job.committed)return;job.status='queued';job.lease_until=null;job.error=code;const doc=state.documents.find(item=>item.file_id===job.file_id);if(doc && doc.file_version_id===job.file_version_id){doc.status='queued';doc.error=code;}});}
+  private async notifyPendingEvaluation():Promise<void>{const state=await this.state();if(state.pending_evaluation)await this.options.afterLedgerCommit?.(state);}
+  /** EVALUATE messages cannot invoke source extraction. */
+  async processEvaluation():Promise<'completed'|'duplicate'|'busy'|'stale'>{
+    if(!(await this.state()).profile)throw new DomainError('PROFILE_REQUIRED','Save the business profile before evaluating documents.',409,true);
+    const snapshot=await this.prepareEvaluation();
+    if(!snapshot)return 'duplicate';
+    if(!await this.claimEvaluation(snapshot))return 'busy';
+    let opportunity=evaluateSnapshot(snapshot);
+    if(opportunity && this.options.extractionMode==='live_box_ai')opportunity={...opportunity,execution:{...opportunity.execution,explanation_mode:'deterministic_fallback'}};
+    if(opportunity && this.options.explain){
+      try{
+        const output=await this.options.explain(opportunity,usable(snapshot.state));
+        const receipt='explanation' in output ? output : null;
+        const explanation=validateExplanation(receipt?.explanation??output,{opportunity,facts:usable(snapshot.state)});
+        opportunity={...opportunity,summary:explanation.summary,execution:{...opportunity.execution,explanation_mode:receipt?.mode??'live_bedrock'}};
+      }catch{opportunity={...opportunity,execution:{...opportunity.execution,explanation_mode:'deterministic_fallback'}};}
+    }
+    return await this.publishEvaluation(snapshot,opportunity)?'completed':'stale';
+  }
   private async runQueue():Promise<void>{
     if(!(await this.state()).profile)return;
     await this.reconcile();
     for(let count=0;count<100;count++){
       const state=await this.state();
       const job=state.jobs.find(item=>item.kind==='INGEST' && !item.committed && item.status==='queued');
-      if(job){
-        const observed=state.documents.find(item=>item.file_id===job.file_id);
-        if(!observed || observed.file_version_id!==job.file_version_id){await this.store.transact(draft=>{const obsolete=draft.jobs.find(item=>item.job_id===job.job_id);if(obsolete){obsolete.status='completed';obsolete.committed=true;obsolete.lease_until=null;}});continue;}
-        const claimed=await this.store.transact(draft=>{const item=draft.jobs.find(item=>item.job_id===job.job_id);const doc=draft.documents.find(item=>item.file_id===job.file_id);if(!item || item.committed || item.status!=='queued' || !doc || doc.file_version_id!==job.file_version_id)return false;item.status='extracting';item.attempts++;item.lease_until=Date.now()+60000;doc.status='extracting';return true;});
-        if(!claimed)continue;
-        let source:SourceInput;
-        try{source=this.sources.get(`${job.file_id}:${job.file_version_id}`)??await(this.options.resolveSource?.(job.file_id!)??fixtureSource(job.file_id!));}
-        catch(error){await this.failIngest(job.file_id!,job.file_version_id!,(error as Error).message);continue;}
-        try{await this.commitIngest(source);}catch(error){await this.failIngest(job.file_id!,job.file_version_id!,(error as Error).message);continue;}
-        // Deliberately outside ingest error handling: simulated process death must leave durable committed work.
-        await this.options.afterLedgerCommit?.();
-        continue;
-      }
-      const snapshot=await this.prepareEvaluation();
-      if(!snapshot || !await this.claimEvaluation(snapshot))break;
-      let opportunity=evaluateSnapshot(snapshot);
-      if(opportunity && this.options.explain){
-        try{
-          const output=await this.options.explain(opportunity,usable(snapshot.state));
-          const receipt='explanation' in output ? output : null;
-          const explanation=validateExplanation(receipt?.explanation??output,{opportunity,facts:usable(snapshot.state)});
-          opportunity={...opportunity,summary:explanation.summary,execution:{...opportunity.execution,explanation_mode:receipt?.mode??'live_bedrock'}};
-        }catch{opportunity={...opportunity,execution:{...opportunity.execution,explanation_mode:'deterministic_fallback'}};}
-      }
-      await this.publishEvaluation(snapshot,opportunity);
+      if(job){const result=await this.processIngest(job.file_id!);if(result.status==='busy'||result.status==='source_changed')break;continue;}
+      const result=await this.processEvaluation();
+      if(result==='duplicate'||result==='busy')break;
     }
   }
 }
