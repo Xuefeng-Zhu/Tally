@@ -2,6 +2,11 @@ import type { Document, Fact, State } from '../../../packages/contracts';
 
 const factLabels: Record<string, string> = { reported_employer_share_basis_points: 'Reported employer premium share', recorded_payment_amount: 'Recorded insurance payment', recorded_payment_date: 'Recorded payment date', payroll_total_hours: 'Recorded payroll hours', payroll_gross_wages: 'Partial payroll wages', payroll_worker_count: 'Recorded payroll workers', stated_total_premium: 'Stated total premium', stated_employer_contribution: 'Stated employer contribution', stated_employee_contribution: 'Stated employee contribution', insurance_payment: 'Recorded insurance payment', insurance_payment_amount: 'Insurance payment amount', insurance_payment_amount_cents:'Insurance payment amount', payment_date: 'Payment date', payroll_hours: 'Recorded payroll hours', payroll_wages: 'Partial payroll wages', payroll_wages_cents: 'Partial payroll wages', coverage_start: 'Coverage begins', coverage_end: 'Coverage ends', coverage_period: 'Coverage period', total_premium: 'Stated total premium', total_premium_cents:'Stated total premium', employer_premium: 'Stated employer premium', employer_premium_cents:'Stated employer premium', employee_premium:'Stated employee premium', employee_premium_cents:'Stated employee premium', employer_share_basis_points: 'Stated employer share' };
 export function humanize(value: string) { return value.replace(/_/g, ' ').replace(/^./, initial => initial.toUpperCase()); }
+export function sourceVerificationLabel(fact: Fact): string | null {
+  return fact.source.verification_method === 'local_pdf_text_match'
+    ? 'PDF text verified locally · Not a native Box citation'
+    : null;
+}
 function factValue(fact: Fact): string {
   if (fact.value_state === 'unknown' || fact.value === null) return 'Unknown';
   if (fact.unit === 'USD_cents' && typeof fact.value === 'number') return new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'}).format(fact.value / 100);
@@ -33,10 +38,12 @@ export function EvidencePanel({state}: {state: State}) {
       {facts.length === 0 ? <p>No active facts are attached to this assessment.</p> : <div className="fact-list">{facts.map(fact => {
         const source = resolveEvidenceSource(state.documents, fact);
         const locator = fact.source.locator;
+        const verificationLabel = sourceVerificationLabel(fact);
         const page = locator.kind === 'verified_page' && locator.page !== null ? `Verified page ${locator.page}` : locator.kind === 'file_only' ? 'File-level reference' : 'Page reference unavailable';
         return <article className="fact-row" key={fact.fact_id}>
           <div className="fact-title"><h3>{factLabels[fact.fact_type] ?? humanize(fact.fact_type)}</h3><strong>{factValue(fact)}</strong></div>
           <div className="fact-meta"><span className={fact.verification_state === 'needs_review' ? 'review-state' : ''}>{fact.verification_state==='source_supported'?'Matches the document':fact.verification_state==='derived'?'Calculated from these records':fact.verification_state==='needs_review'?'Needs attention':humanize(fact.verification_state)}</span><span>{fact.relevant_period.scope==='partial_period'?'Part of the year':fact.relevant_period.scope==='point_in_time'?'Recorded date':humanize(fact.relevant_period.scope)}{fact.relevant_period.start ? ` · ${fact.relevant_period.start}` : ''}{fact.relevant_period.end ? ` to ${fact.relevant_period.end}` : ''}</span></div>
+          {verificationLabel && <span className="locator">{verificationLabel}</span>}
           {fact.source.excerpt && <blockquote>“{fact.source.excerpt}”</blockquote>}
           {source ? <a className="source-link" data-testid="evidence-link" href={source.source_url} target="_blank" rel="noreferrer">{source.name} <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span></a> : <span className="field-note">{fact.source.kind === 'owner_provided' ? 'Synthetic owner-provided context' : fact.source.kind === 'deterministic_derivation' ? 'Derived from referenced input facts' : 'Source link unavailable'}</span>}
           {(fact.source.kind === 'box_document' || fact.source.kind === 'fixture_document') && <span className="locator">{page}{fact.source.excerpt_validation === 'matched' ? ' · excerpt matched' : fact.source.excerpt_validation === 'failed' ? ' · excerpt needs review' : ''}</span>}

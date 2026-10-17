@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Fact, State } from '../../../packages/contracts';
-import { resolveEvidenceSource } from './EvidencePanel';
+import { resolveEvidenceSource, sourceVerificationLabel } from './EvidencePanel';
 import { assessmentUpdatePending, documentFacts, factDisplayValue, factTitle, filterInbox, formatRecordDate, inboxEntries, partitionDocumentFacts, safeDocumentUrl, safeErrorCode, titleCase, type InboxEntry, type InboxFilter } from './workspacePresentation';
 import './documents.css';
 
@@ -9,9 +9,10 @@ function DocumentIcon(){return <svg viewBox="0 0 24 28" fill="none" aria-hidden=
 const verification:Record<Fact['verification_state'],string>={source_supported:'Ready to review',candidate:'Needs verification',needs_review:'Needs attention',superseded:'Earlier version',derived:'Calculated from records',owner_confirmed:'Owner confirmed'};
 function FactRecord({fact,state}:{fact:Fact;state:State}){
   const source=resolveEvidenceSource(state.documents,fact),url=safeDocumentUrl(source?.source_url),page=fact.source.locator.kind==='verified_page'?fact.source.locator.page:null;
-  const href=url&&page?`${url.split('#')[0]}#page=${page}`:url;
+  const href=url&&page?`${url.split('#')[0]}#page=${page}`:url,verificationLabel=sourceVerificationLabel(fact);
   return <article className="inbox-fact"><div className="inbox-fact-heading"><h4>{factTitle(fact)}</h4><strong>{factDisplayValue(fact)}</strong></div>
     <p className={`inbox-verification ${fact.verification_state==='needs_review'||fact.verification_state==='candidate'?'is-attention':''}`}>{verification[fact.verification_state]}</p>
+    {verificationLabel&&<p className="inbox-reference-note">{verificationLabel}</p>}
     <p className="muted inbox-fact-date">{fact.relevant_period.scope==='partial_period'?'Partial period · ':fact.relevant_period.scope==='annual'?'Annual period · ':''}{formatRecordDate(fact.relevant_period.start)}{fact.relevant_period.end&&fact.relevant_period.end!==fact.relevant_period.start?` – ${formatRecordDate(fact.relevant_period.end)}`:''}</p>
     {fact.source.excerpt&&<blockquote>{fact.source.excerpt}</blockquote>}
     {href?<a className="inbox-source-link" href={href} target="_blank" rel="noreferrer">{page?`View source · page ${page}`:'View source document'} <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span></a>:<p className="muted inbox-reference-note">A current source reference is unavailable for this information.</p>}

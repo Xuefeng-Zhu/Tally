@@ -3,6 +3,8 @@ import { CONTEXT, type Fact, type SourceInput } from '../../packages/contracts/i
 import { BoxAdapter, parseBoxExtraction, sameBoxVersion, type BoxMetadata } from './box.js';
 import { ProviderGateError } from './gates.js';
 import type { PdfSnapshot } from './pdf.js';
+export type BoxSourceNormalizer=(input:unknown,metadata:BoxMetadata,pdf:PdfSnapshot)=>SourceInput;
+export type BoxSourceProviderOptions={normalize?:BoxSourceNormalizer};
 export type PreparedBoxSource={metadata:BoxMetadata;pdf:PdfSnapshot;observation:SourceInput};
 export class BoxSourceChangedError extends ProviderGateError{
  constructor(public readonly latestMetadata:BoxMetadata,public readonly currentObservation?:SourceInput){super('BOX_SOURCE_CHANGED');this.name='BoxSourceChangedError';}
@@ -15,17 +17,17 @@ export async function prepareBoxSource(adapter:BoxAdapter,fileId:string):Promise
  if(!sameBoxVersion(metadata,after))throw new BoxSourceChangedError(after);
  return {metadata,pdf,observation:observation(metadata,pdf)};
 }
-export async function extractPreparedSource(adapter:BoxAdapter,prepared:PreparedBoxSource):Promise<SourceInput>{
+export async function extractPreparedSource(adapter:BoxAdapter,prepared:PreparedBoxSource,options:BoxSourceProviderOptions={}):Promise<SourceInput>{
  const before=await adapter.metadata(prepared.metadata.id);
  if(!sameBoxVersion(prepared.metadata,before))return changed(adapter,before);
  const raw=await adapter.extractFields(before.id),after=await adapter.metadata(before.id);
  if(!sameBoxVersion(before,after))return changed(adapter,after);
- return normalizeBoxSource(raw,prepared.metadata,prepared.pdf);
+ return (options.normalize??normalizeBoxSource)(raw,prepared.metadata,prepared.pdf);
 }
 /** Cache parsed snapshots only within a worker instance, at most eight bounded documents. */
-export function createBoxSourceProvider(adapter:BoxAdapter){
+export function createBoxSourceProvider(adapter:BoxAdapter,options:BoxSourceProviderOptions={}){
  const cache=new Map<string,PreparedBoxSource>();const key=(source:SourceInput)=>`${source.file_id}:${source.file_version_id}:${source.sha256}`;
- return {prepare:async(fileId:string)=>{const prepared=await prepareBoxSource(adapter,fileId);cache.set(key(prepared.observation),prepared);while(cache.size>8)cache.delete(cache.keys().next().value!);return structuredClone(prepared.observation);},extract:async(source:SourceInput)=>{let prepared=cache.get(key(source));if(!prepared){prepared=await prepareBoxSource(adapter,source.file_id);if(key(prepared.observation)!==key(source))throw new BoxSourceChangedError(prepared.metadata,prepared.observation);}try{return await extractPreparedSource(adapter,prepared);}finally{cache.delete(key(source));}}};
+ return {prepare:async(fileId:string)=>{const prepared=await prepareBoxSource(adapter,fileId);cache.set(key(prepared.observation),prepared);while(cache.size>8)cache.delete(cache.keys().next().value!);return structuredClone(prepared.observation);},extract:async(source:SourceInput)=>{let prepared=cache.get(key(source));if(!prepared){prepared=await prepareBoxSource(adapter,source.file_id);if(key(prepared.observation)!==key(source))throw new BoxSourceChangedError(prepared.metadata,prepared.observation);}try{return await extractPreparedSource(adapter,prepared,options);}finally{cache.delete(key(source));}}};
 }
 const fields:Record<string,{type:string;unit:Fact['unit'];kind:'money'|'date'|'number'|'text'}>={
  document_type:{type:'document_type',unit:'text',kind:'text'},business_name:{type:'business_name',unit:'text',kind:'text'},insurer_name:{type:'insurer_name',unit:'text',kind:'text'},payment_reference:{type:'payment_reference',unit:'text',kind:'text'},payment_date:{type:'recorded_payment_date',unit:'date',kind:'date'},recorded_payment_amount:{type:'recorded_payment_amount',unit:'USD_cents',kind:'money'},currency:{type:'currency',unit:'text',kind:'text'},payroll_period_start:{type:'payroll_period_start',unit:'date',kind:'date'},payroll_period_end:{type:'payroll_period_end',unit:'date',kind:'date'},reported_gross_wages:{type:'payroll_gross_wages',unit:'USD_cents',kind:'money'},reported_hours:{type:'payroll_total_hours',unit:'hours',kind:'number'},coverage_start:{type:'coverage_start',unit:'date',kind:'date'},coverage_end:{type:'coverage_end',unit:'date',kind:'date'},stated_total_premium:{type:'stated_total_premium',unit:'USD_cents',kind:'money'},stated_employer_contribution:{type:'stated_employer_contribution',unit:'USD_cents',kind:'money'},stated_employee_contribution:{type:'stated_employee_contribution',unit:'USD_cents',kind:'money'},invoice_reference:{type:'invoice_reference',unit:'text',kind:'text'},policy_reference:{type:'policy_reference',unit:'text',kind:'text'}
