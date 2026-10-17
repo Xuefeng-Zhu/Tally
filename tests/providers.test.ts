@@ -8,7 +8,7 @@ import { parseBoxUploadEvent, verifyBoxSignature } from '../services/api/box-sig
 import { assertLiveGate } from '../services/providers/gates.js';
 import { BOX_SMOKE_FIELDS, BoxAdapter, buildBoxExtractRequest } from '../services/providers/box.js';
 import { deterministicExplanation, parseCompleteExplanation, validateExplanation, type ExplanationContext } from '../services/providers/explanation.js';
-import { explainWithStrands, NOVA_CONFIG, type StrandsResult } from '../services/providers/strands.js';
+import { explainWithStrands, BEDROCK_CONFIG, type StrandsResult } from '../services/providers/strands.js';
 import { DynamoStore, type DynamoTransport } from '../services/storage/dynamo-store.js';
 
 const env={TALLY_DEMO_TENANT_ID:CONTEXT.business_id,TALLY_TAX_YEAR:'2025',TALLY_RULE_SET_ID:CONTEXT.rule_set_id,AWS_REGION:MODEL.region,BEDROCK_MODEL_ID:MODEL.model_id,TALLY_EXPLANATION_ADAPTER:'strands'};
@@ -43,7 +43,7 @@ test('live smoke gate requires flag and fixed demo/model targets before a call',
   assert.throws(()=>assertLiveGate('strands',['--approved-live-call'],{...env,AWS_REGION:'us-west-2'}),/MODEL_TARGET/);
   assert.throws(()=>assertLiveGate('strands',['--approved-live-call'],{...env,TALLY_DEMO_TENANT_ID:'other'}),/DEMO_TARGET/);
   assert.doesNotThrow(()=>assertLiveGate('strands',['--approved-live-call'],env));
-  assert.equal(NOVA_CONFIG.stream,false);assert.equal(NOVA_CONFIG.clientConfig.maxAttempts,1);assert.equal(NOVA_CONFIG.requestTimeout,20_000);
+  assert.equal(BEDROCK_CONFIG.stream,false);assert.equal(BEDROCK_CONFIG.clientConfig.maxAttempts,1);assert.equal(BEDROCK_CONFIG.requestTimeout,20_000);
 });
 const metadata={id:'100',type:'file',name:'fixture-a.pdf',size:1000,sha1:'sha1-a',file_version:{id:'1'},parent:{id:'12'}};
 function mockBox(sequence:unknown[]){const requests:{url:string;body:unknown}[]=[];const fetcher=(async(url:unknown,init:RequestInit)=>{requests.push({url:String(url),body:init.body?JSON.parse(String(init.body)):null});if(!sequence.length)throw new Error('UNEXPECTED_EXTRA_REQUEST');return new Response(JSON.stringify(sequence.shift()),{status:200,headers:{'content-type':'application/json'}});}) as typeof fetch;return {adapter:new BoxAdapter('never-logged-token','12',fetcher),requests};}

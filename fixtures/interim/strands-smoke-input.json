@@ -1,0 +1,567 @@
+{
+  "opportunity": {
+    "opportunity_id": "demo-bakery-001:2025:irc_45r",
+    "business_id": "demo-bakery-001",
+    "tax_year": 2025,
+    "rule_set_id": "us-federal-irc45r-2025-v1",
+    "revision": 1,
+    "ledger_rev": 2,
+    "profile_rev": 1,
+    "evaluation_key": "2:1:us-federal-irc45r-2025-v1",
+    "assessment": "potential_opportunity",
+    "stage": "evidence_updated",
+    "annual_readiness": "annual_requirements_unresolved",
+    "synthetic_data": true,
+    "historical_demo": true,
+    "evidence_checks": [
+      {
+        "requirement_id": "recorded_insurance_payment",
+        "result": "supported",
+        "fact_ids": [
+          "fixture-A:1:recorded_payment_amount"
+        ],
+        "source_ids": [
+          "fixture-A"
+        ],
+        "reason": "A source records an insurance payment; payment confirmation and coverage matching remain unresolved."
+      },
+      {
+        "requirement_id": "partial_payroll",
+        "result": "supported",
+        "fact_ids": [
+          "fixture-A:1:payroll_gross_wages",
+          "fixture-A:1:payroll_total_hours"
+        ],
+        "source_ids": [
+          "fixture-A"
+        ],
+        "reason": "Any supported payroll covers a partial period only. It is not annual FTE or annual FICA wages."
+      },
+      {
+        "requirement_id": "coverage_period",
+        "result": "supported",
+        "fact_ids": [
+          "fixture-B:1:coverage_end",
+          "fixture-B:1:coverage_start"
+        ],
+        "source_ids": [
+          "fixture-B"
+        ],
+        "reason": "The source states a valid coverage period in the demonstration tax year."
+      },
+      {
+        "requirement_id": "stated_premium_breakdown",
+        "result": "supported",
+        "fact_ids": [
+          "fixture-B:1:stated_employee_contribution",
+          "fixture-B:1:stated_employer_contribution",
+          "fixture-B:1:stated_total_premium"
+        ],
+        "source_ids": [
+          "fixture-B"
+        ],
+        "reason": "The statement reports reconciled employer and employee premium components. These are stated components, not an additional payment."
+      },
+      {
+        "requirement_id": "payment_to_coverage_match",
+        "result": "unknown",
+        "fact_ids": [
+          "fixture-A:1:recorded_payment_amount",
+          "fixture-B:1:stated_employee_contribution",
+          "fixture-B:1:stated_employer_contribution",
+          "fixture-B:1:stated_total_premium"
+        ],
+        "source_ids": [
+          "fixture-A",
+          "fixture-B"
+        ],
+        "reason": "The recorded payment and stated contribution lack a shared confirmation or identifier. Equal amounts do not establish a payment match."
+      }
+    ],
+    "annual_requirements": [
+      {
+        "requirement_id": "annual_fte",
+        "result": "unknown",
+        "fact_ids": [],
+        "source_ids": [],
+        "reason": "Annual evidence and applicable exclusions or program conditions remain unresolved."
+      },
+      {
+        "requirement_id": "annual_fica_wages",
+        "result": "unknown",
+        "fact_ids": [],
+        "source_ids": [],
+        "reason": "Annual evidence and applicable exclusions or program conditions remain unresolved."
+      },
+      {
+        "requirement_id": "owner_family_exclusions",
+        "result": "unknown",
+        "fact_ids": [],
+        "source_ids": [],
+        "reason": "Annual evidence and applicable exclusions or program conditions remain unresolved."
+      },
+      {
+        "requirement_id": "related_employer_aggregation",
+        "result": "unknown",
+        "fact_ids": [],
+        "source_ids": [],
+        "reason": "Annual evidence and applicable exclusions or program conditions remain unresolved."
+      },
+      {
+        "requirement_id": "shop_or_exception",
+        "result": "unknown",
+        "fact_ids": [],
+        "source_ids": [],
+        "reason": "Annual evidence and applicable exclusions or program conditions remain unresolved."
+      },
+      {
+        "requirement_id": "qualifying_arrangement",
+        "result": "unknown",
+        "fact_ids": [],
+        "source_ids": [],
+        "reason": "Annual evidence and applicable exclusions or program conditions remain unresolved."
+      },
+      {
+        "requirement_id": "credit_period",
+        "result": "unknown",
+        "fact_ids": [],
+        "source_ids": [],
+        "reason": "Annual evidence and applicable exclusions or program conditions remain unresolved."
+      },
+      {
+        "requirement_id": "annual_net_premiums_and_limits",
+        "result": "unknown",
+        "fact_ids": [],
+        "source_ids": [],
+        "reason": "Annual evidence and applicable exclusions or program conditions remain unresolved."
+      }
+    ],
+    "estimate": {
+      "status": "unavailable",
+      "amount_cents": null,
+      "reason": "Annual requirements remain unresolved; no eligibility conclusion or credit estimate is available."
+    },
+    "next_action": {
+      "id": "review_remaining_requirements",
+      "label": "Review remaining requirements"
+    },
+    "reported_employer_share_basis_points": 8000,
+    "summary": "Coverage and stated premium components are supported. Annual requirements and payment matching remain unresolved.",
+    "fact_ids": [
+      "derived:stated-employer-share:7dc12149cc65a6228cc51cc0",
+      "fixture-A:1:payroll_gross_wages",
+      "fixture-A:1:payroll_total_hours",
+      "fixture-A:1:payroll_worker_count",
+      "fixture-A:1:recorded_payment_amount",
+      "fixture-A:1:recorded_payment_date",
+      "fixture-B:1:coverage_end",
+      "fixture-B:1:coverage_start",
+      "fixture-B:1:stated_employee_contribution",
+      "fixture-B:1:stated_employer_contribution",
+      "fixture-B:1:stated_total_premium"
+    ],
+    "rule_source_ids": [
+      "irc-45r",
+      "form-8941-instructions-2025"
+    ],
+    "execution": {
+      "synthetic_data": true,
+      "intake_mode": "fixture",
+      "extraction_mode": "fixture",
+      "explanation_mode": "fixture"
+    }
+  },
+  "facts": [
+    {
+      "fact_id": "derived:stated-employer-share:7dc12149cc65a6228cc51cc0",
+      "business_id": "demo-bakery-001",
+      "fact_type": "reported_employer_share_basis_points",
+      "value_state": "known",
+      "value": 8000,
+      "unit": "basis_points",
+      "relevant_period": {
+        "start": "2025-06-01",
+        "end": "2025-06-30",
+        "scope": "partial_period"
+      },
+      "as_of_date": null,
+      "source": {
+        "kind": "deterministic_derivation",
+        "file_id": null,
+        "file_version_id": null,
+        "sha256": null,
+        "locator": {
+          "kind": "locator_unavailable",
+          "page": null,
+          "row": null
+        },
+        "excerpt": null,
+        "excerpt_validation": "not_applicable",
+        "owner_confirmation": null,
+        "input_fact_ids": [
+          "fixture-B:1:coverage_end",
+          "fixture-B:1:coverage_start",
+          "fixture-B:1:stated_employee_contribution",
+          "fixture-B:1:stated_employer_contribution",
+          "fixture-B:1:stated_total_premium"
+        ]
+      },
+      "verification_state": "derived",
+      "extraction_schema_version": "tally-extract-v1",
+      "extracted_at": "2026-10-17T06:30:43.333Z",
+      "raw_provider_confidence": null,
+      "supersedes_fact_id": null,
+      "calculation_version": "stated-share-v1"
+    },
+    {
+      "fact_id": "fixture-A:1:payroll_gross_wages",
+      "business_id": "demo-bakery-001",
+      "fact_type": "payroll_gross_wages",
+      "value_state": "known",
+      "value": 400000,
+      "unit": "USD_cents",
+      "relevant_period": {
+        "start": "2025-06-01",
+        "end": "2025-06-15",
+        "scope": "partial_period"
+      },
+      "as_of_date": null,
+      "source": {
+        "kind": "fixture_document",
+        "file_id": "fixture-A",
+        "file_version_id": "1",
+        "sha256": "810149d25808af8cd8a8e221d09e879bb725ec169c4530a660f3aae6f894d333",
+        "locator": {
+          "kind": "verified_page",
+          "page": 2,
+          "row": null
+        },
+        "excerpt": "Total\n200\n$4,000.00",
+        "excerpt_validation": "matched",
+        "owner_confirmation": null,
+        "input_fact_ids": []
+      },
+      "verification_state": "source_supported",
+      "extraction_schema_version": "tally-extract-v1",
+      "extracted_at": "2026-10-17T06:00:00.000Z",
+      "raw_provider_confidence": null,
+      "supersedes_fact_id": null,
+      "calculation_version": null
+    },
+    {
+      "fact_id": "fixture-A:1:payroll_total_hours",
+      "business_id": "demo-bakery-001",
+      "fact_type": "payroll_total_hours",
+      "value_state": "known",
+      "value": 200,
+      "unit": "hours",
+      "relevant_period": {
+        "start": "2025-06-01",
+        "end": "2025-06-15",
+        "scope": "partial_period"
+      },
+      "as_of_date": null,
+      "source": {
+        "kind": "fixture_document",
+        "file_id": "fixture-A",
+        "file_version_id": "1",
+        "sha256": "810149d25808af8cd8a8e221d09e879bb725ec169c4530a660f3aae6f894d333",
+        "locator": {
+          "kind": "verified_page",
+          "page": 2,
+          "row": null
+        },
+        "excerpt": "Total\n200\n$4,000.00",
+        "excerpt_validation": "matched",
+        "owner_confirmation": null,
+        "input_fact_ids": []
+      },
+      "verification_state": "source_supported",
+      "extraction_schema_version": "tally-extract-v1",
+      "extracted_at": "2026-10-17T06:00:00.000Z",
+      "raw_provider_confidence": null,
+      "supersedes_fact_id": null,
+      "calculation_version": null
+    },
+    {
+      "fact_id": "fixture-A:1:payroll_worker_count",
+      "business_id": "demo-bakery-001",
+      "fact_type": "payroll_worker_count",
+      "value_state": "known",
+      "value": 4,
+      "unit": "count",
+      "relevant_period": {
+        "start": "2025-06-01",
+        "end": "2025-06-15",
+        "scope": "partial_period"
+      },
+      "as_of_date": null,
+      "source": {
+        "kind": "fixture_document",
+        "file_id": "fixture-A",
+        "file_version_id": "1",
+        "sha256": "810149d25808af8cd8a8e221d09e879bb725ec169c4530a660f3aae6f894d333",
+        "locator": {
+          "kind": "verified_page",
+          "page": 2,
+          "row": null
+        },
+        "excerpt": "This partial pay-period register lists four synthetic workers.",
+        "excerpt_validation": "matched",
+        "owner_confirmation": null,
+        "input_fact_ids": []
+      },
+      "verification_state": "source_supported",
+      "extraction_schema_version": "tally-extract-v1",
+      "extracted_at": "2026-10-17T06:00:00.000Z",
+      "raw_provider_confidence": null,
+      "supersedes_fact_id": null,
+      "calculation_version": null
+    },
+    {
+      "fact_id": "fixture-A:1:recorded_payment_amount",
+      "business_id": "demo-bakery-001",
+      "fact_type": "recorded_payment_amount",
+      "value_state": "known",
+      "value": 120000,
+      "unit": "USD_cents",
+      "relevant_period": {
+        "start": "2025-06-05",
+        "end": "2025-06-05",
+        "scope": "point_in_time"
+      },
+      "as_of_date": "2025-06-05",
+      "source": {
+        "kind": "fixture_document",
+        "file_id": "fixture-A",
+        "file_version_id": "1",
+        "sha256": "810149d25808af8cd8a8e221d09e879bb725ec169c4530a660f3aae6f894d333",
+        "locator": {
+          "kind": "verified_page",
+          "page": 1,
+          "row": null
+        },
+        "excerpt": "A recorded insurance payment of $1,200 on June 5, 2025.",
+        "excerpt_validation": "matched",
+        "owner_confirmation": null,
+        "input_fact_ids": []
+      },
+      "verification_state": "source_supported",
+      "extraction_schema_version": "tally-extract-v1",
+      "extracted_at": "2026-10-17T06:00:00.000Z",
+      "raw_provider_confidence": null,
+      "supersedes_fact_id": null,
+      "calculation_version": null
+    },
+    {
+      "fact_id": "fixture-A:1:recorded_payment_date",
+      "business_id": "demo-bakery-001",
+      "fact_type": "recorded_payment_date",
+      "value_state": "known",
+      "value": "2025-06-05",
+      "unit": "date",
+      "relevant_period": {
+        "start": "2025-06-05",
+        "end": "2025-06-05",
+        "scope": "point_in_time"
+      },
+      "as_of_date": "2025-06-05",
+      "source": {
+        "kind": "fixture_document",
+        "file_id": "fixture-A",
+        "file_version_id": "1",
+        "sha256": "810149d25808af8cd8a8e221d09e879bb725ec169c4530a660f3aae6f894d333",
+        "locator": {
+          "kind": "verified_page",
+          "page": 1,
+          "row": null
+        },
+        "excerpt": "2025-06-05",
+        "excerpt_validation": "matched",
+        "owner_confirmation": null,
+        "input_fact_ids": []
+      },
+      "verification_state": "source_supported",
+      "extraction_schema_version": "tally-extract-v1",
+      "extracted_at": "2026-10-17T06:00:00.000Z",
+      "raw_provider_confidence": null,
+      "supersedes_fact_id": null,
+      "calculation_version": null
+    },
+    {
+      "fact_id": "fixture-B:1:coverage_end",
+      "business_id": "demo-bakery-001",
+      "fact_type": "coverage_end",
+      "value_state": "known",
+      "value": "2025-06-30",
+      "unit": "date",
+      "relevant_period": {
+        "start": "2025-06-01",
+        "end": "2025-06-30",
+        "scope": "partial_period"
+      },
+      "as_of_date": null,
+      "source": {
+        "kind": "fixture_document",
+        "file_id": "fixture-B",
+        "file_version_id": "1",
+        "sha256": "18fead97344e16c4f8a3d330c695eb1a8b64549bd07e2d33cb78892d60d6b831",
+        "locator": {
+          "kind": "verified_page",
+          "page": 1,
+          "row": null
+        },
+        "excerpt": "Start: 2025-06-01. End: 2025-06-30.",
+        "excerpt_validation": "matched",
+        "owner_confirmation": null,
+        "input_fact_ids": []
+      },
+      "verification_state": "source_supported",
+      "extraction_schema_version": "tally-extract-v1",
+      "extracted_at": "2026-10-17T06:00:00.000Z",
+      "raw_provider_confidence": null,
+      "supersedes_fact_id": null,
+      "calculation_version": null
+    },
+    {
+      "fact_id": "fixture-B:1:coverage_start",
+      "business_id": "demo-bakery-001",
+      "fact_type": "coverage_start",
+      "value_state": "known",
+      "value": "2025-06-01",
+      "unit": "date",
+      "relevant_period": {
+        "start": "2025-06-01",
+        "end": "2025-06-30",
+        "scope": "partial_period"
+      },
+      "as_of_date": null,
+      "source": {
+        "kind": "fixture_document",
+        "file_id": "fixture-B",
+        "file_version_id": "1",
+        "sha256": "18fead97344e16c4f8a3d330c695eb1a8b64549bd07e2d33cb78892d60d6b831",
+        "locator": {
+          "kind": "verified_page",
+          "page": 1,
+          "row": null
+        },
+        "excerpt": "Start: 2025-06-01. End: 2025-06-30.",
+        "excerpt_validation": "matched",
+        "owner_confirmation": null,
+        "input_fact_ids": []
+      },
+      "verification_state": "source_supported",
+      "extraction_schema_version": "tally-extract-v1",
+      "extracted_at": "2026-10-17T06:00:00.000Z",
+      "raw_provider_confidence": null,
+      "supersedes_fact_id": null,
+      "calculation_version": null
+    },
+    {
+      "fact_id": "fixture-B:1:stated_employee_contribution",
+      "business_id": "demo-bakery-001",
+      "fact_type": "stated_employee_contribution",
+      "value_state": "known",
+      "value": 30000,
+      "unit": "USD_cents",
+      "relevant_period": {
+        "start": "2025-06-01",
+        "end": "2025-06-30",
+        "scope": "partial_period"
+      },
+      "as_of_date": null,
+      "source": {
+        "kind": "fixture_document",
+        "file_id": "fixture-B",
+        "file_version_id": "1",
+        "sha256": "18fead97344e16c4f8a3d330c695eb1a8b64549bd07e2d33cb78892d60d6b831",
+        "locator": {
+          "kind": "verified_page",
+          "page": 1,
+          "row": null
+        },
+        "excerpt": "Stated employee contribution\n$300.00",
+        "excerpt_validation": "matched",
+        "owner_confirmation": null,
+        "input_fact_ids": []
+      },
+      "verification_state": "source_supported",
+      "extraction_schema_version": "tally-extract-v1",
+      "extracted_at": "2026-10-17T06:00:00.000Z",
+      "raw_provider_confidence": null,
+      "supersedes_fact_id": null,
+      "calculation_version": null
+    },
+    {
+      "fact_id": "fixture-B:1:stated_employer_contribution",
+      "business_id": "demo-bakery-001",
+      "fact_type": "stated_employer_contribution",
+      "value_state": "known",
+      "value": 120000,
+      "unit": "USD_cents",
+      "relevant_period": {
+        "start": "2025-06-01",
+        "end": "2025-06-30",
+        "scope": "partial_period"
+      },
+      "as_of_date": null,
+      "source": {
+        "kind": "fixture_document",
+        "file_id": "fixture-B",
+        "file_version_id": "1",
+        "sha256": "18fead97344e16c4f8a3d330c695eb1a8b64549bd07e2d33cb78892d60d6b831",
+        "locator": {
+          "kind": "verified_page",
+          "page": 1,
+          "row": null
+        },
+        "excerpt": "Stated employer contribution\n$1,200.00",
+        "excerpt_validation": "matched",
+        "owner_confirmation": null,
+        "input_fact_ids": []
+      },
+      "verification_state": "source_supported",
+      "extraction_schema_version": "tally-extract-v1",
+      "extracted_at": "2026-10-17T06:00:00.000Z",
+      "raw_provider_confidence": null,
+      "supersedes_fact_id": null,
+      "calculation_version": null
+    },
+    {
+      "fact_id": "fixture-B:1:stated_total_premium",
+      "business_id": "demo-bakery-001",
+      "fact_type": "stated_total_premium",
+      "value_state": "known",
+      "value": 150000,
+      "unit": "USD_cents",
+      "relevant_period": {
+        "start": "2025-06-01",
+        "end": "2025-06-30",
+        "scope": "partial_period"
+      },
+      "as_of_date": null,
+      "source": {
+        "kind": "fixture_document",
+        "file_id": "fixture-B",
+        "file_version_id": "1",
+        "sha256": "18fead97344e16c4f8a3d330c695eb1a8b64549bd07e2d33cb78892d60d6b831",
+        "locator": {
+          "kind": "verified_page",
+          "page": 1,
+          "row": null
+        },
+        "excerpt": "Total monthly premium\n$1,500.00",
+        "excerpt_validation": "matched",
+        "owner_confirmation": null,
+        "input_fact_ids": []
+      },
+      "verification_state": "source_supported",
+      "extraction_schema_version": "tally-extract-v1",
+      "extracted_at": "2026-10-17T06:00:00.000Z",
+      "raw_provider_confidence": null,
+      "supersedes_fact_id": null,
+      "calculation_version": null
+    }
+  ]
+}

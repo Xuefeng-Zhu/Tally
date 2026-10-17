@@ -1,0 +1,600 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Description": "Tally review-only demo infrastructure. No deployment or live provider gate has been approved.",
+  "Metadata": {
+    "SpecificationStatus": "interim_reconstructed",
+    "LiveGateStatus": "not_run_not_approved"
+  },
+  "Parameters": {
+    "ResourcePrefix": {
+      "Type": "String",
+      "Default": "tally",
+      "AllowedPattern": "[a-z][a-z0-9-]{0,39}",
+      "MaxLength": 40,
+      "Description": "Unique demo resource name prefix."
+    },
+    "BoxCredentialsSecretArn": {
+      "Type": "String",
+      "AllowedPattern": "arn:aws:secretsmanager:us-east-1:[0-9]{12}:secret:.+",
+      "Description": "Existing approved secret ARN only. JSON: access_token, expected_user_id. No secret is created."
+    },
+    "BoxWebhookSignaturesSecretArn": {
+      "Type": "String",
+      "AllowedPattern": "arn:aws:secretsmanager:us-east-1:[0-9]{12}:secret:.+",
+      "Description": "Existing approved secret ARN only. JSON: primaryKey, optional secondaryKey. No secret is created."
+    },
+    "BoxInputFolderId": {
+      "Type": "String",
+      "AllowedPattern": "[0-9]+",
+      "Description": "Existing approved Box input folder ID."
+    },
+    "BoxWebhookId": {
+      "Type": "String",
+      "AllowedPattern": "[0-9]+",
+      "Description": "Existing approved Box webhook ID."
+    },
+    "LiveProvidersEnabled": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Description": "Must remain false until P01/P02 and cloud use are explicitly approved."
+    },
+    "BedrockModelId": {
+      "Type": "String",
+      "Default": "qwen.qwen3-next-80b-a3b",
+      "AllowedValues": [
+        "qwen.qwen3-next-80b-a3b"
+      ],
+      "Description": "Final price/performance selection: Qwen3 Next 80B A3B. Live calls require separate approval."
+    },
+    "BedrockModelArn": {
+      "Type": "String",
+      "Default": "arn:aws:bedrock:us-east-1::foundation-model/qwen.qwen3-next-80b-a3b",
+      "AllowedValues": [
+        "arn:aws:bedrock:us-east-1::foundation-model/qwen.qwen3-next-80b-a3b"
+      ],
+      "Description": "Exact us-east-1 direct Qwen3 Next 80B A3B ARN. No profiles or wildcard model permission."
+    }
+  },
+  "Globals": {
+    "Function": {
+      "Runtime": "nodejs22.x",
+      "Architectures": [
+        "arm64"
+      ],
+      "MemorySize": 512,
+      "Tracing": "PassThrough"
+    }
+  },
+  "Resources": {
+    "TallyHttpApi": {
+      "Type": "AWS::Serverless::HttpApi",
+      "Properties": {
+        "StageName": "$default",
+        "Auth": {
+          "EnableIamAuthorizer": true,
+          "DefaultAuthorizer": "AWS_IAM"
+        }
+      }
+    },
+    "StateTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "pk",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "pk",
+            "KeyType": "HASH"
+          }
+        ],
+        "SSESpecification": {
+          "SSEEnabled": true
+        }
+      }
+    },
+    "DeadLetterQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": {
+          "Fn::Sub": "${ResourcePrefix}-jobs-dlq"
+        },
+        "MessageRetentionPeriod": 1209600,
+        "SqsManagedSseEnabled": true
+      }
+    },
+    "WorkQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": {
+          "Fn::Sub": "${ResourcePrefix}-jobs"
+        },
+        "VisibilityTimeout": 720,
+        "MessageRetentionPeriod": 345600,
+        "SqsManagedSseEnabled": true,
+        "RedrivePolicy": {
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "DeadLetterQueue",
+              "Arn"
+            ]
+          },
+          "maxReceiveCount": 5
+        }
+      }
+    },
+    "ApiLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/aws/lambda/${ResourcePrefix}-api"
+        },
+        "RetentionInDays": 14
+      }
+    },
+    "WorkerLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/aws/lambda/${ResourcePrefix}-worker"
+        },
+        "RetentionInDays": 14
+      }
+    },
+    "ApiRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "TallyScopedRuntime",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "StateCompareAndSwap",
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "StateTable",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "ForAllValues:StringEquals": {
+                      "dynamodb:LeadingKeys": [
+                        "TENANT#demo-bakery-001#STATE"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Sid": "ReadExistingApprovedSecret",
+                  "Effect": "Allow",
+                  "Action": [
+                    "secretsmanager:GetSecretValue"
+                  ],
+                  "Resource": {
+                    "Ref": "BoxWebhookSignaturesSecretArn"
+                  }
+                },
+                {
+                  "Sid": "WritePrecreatedLogGroup",
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "ApiLogGroup",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Sid": "EnqueueJobs",
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:SendMessage"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "WorkQueue",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "WorkerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "TallyScopedRuntime",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "StateCompareAndSwap",
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "StateTable",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "ForAllValues:StringEquals": {
+                      "dynamodb:LeadingKeys": [
+                        "TENANT#demo-bakery-001#STATE"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Sid": "ReadExistingApprovedSecret",
+                  "Effect": "Allow",
+                  "Action": [
+                    "secretsmanager:GetSecretValue"
+                  ],
+                  "Resource": {
+                    "Ref": "BoxCredentialsSecretArn"
+                  }
+                },
+                {
+                  "Sid": "WritePrecreatedLogGroup",
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "WorkerLogGroup",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Sid": "ConsumeAndEnqueueJobs",
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:ReceiveMessage",
+                    "sqs:DeleteMessage",
+                    "sqs:GetQueueAttributes",
+                    "sqs:SendMessage"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "WorkQueue",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Sid": "InvokeExactDirectModel",
+                  "Effect": "Allow",
+                  "Action": [
+                    "bedrock:InvokeModel"
+                  ],
+                  "Resource": {
+                    "Ref": "BedrockModelArn"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ApiFunction": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "FunctionName": {
+          "Fn::Sub": "${ResourcePrefix}-api"
+        },
+        "CodeUri": "../",
+        "Handler": "services/api/handler.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "ApiRole",
+            "Arn"
+          ]
+        },
+        "Timeout": 29,
+        "Environment": {
+          "Variables": {
+            "TALLY_TABLE_NAME": {
+              "Ref": "StateTable"
+            },
+            "TALLY_QUEUE_URL": {
+              "Ref": "WorkQueue"
+            },
+            "TALLY_DEMO_TENANT_ID": "demo-bakery-001",
+            "TALLY_TAX_YEAR": "2025",
+            "TALLY_RULE_SET_ID": "us-federal-irc45r-2025-v1",
+            "EXTRACTION_SCHEMA_VERSION": "tally-extract-v1",
+            "LIVE_PROVIDERS_ENABLED": {
+              "Ref": "LiveProvidersEnabled"
+            },
+            "BOX_INPUT_FOLDER_ID": {
+              "Ref": "BoxInputFolderId"
+            },
+            "MAX_PDF_BYTES": "1048576",
+            "MAX_PDF_PAGES": "2",
+            "BOX_WEBHOOK_SIGNATURES_SECRET_ARN": {
+              "Ref": "BoxWebhookSignaturesSecretArn"
+            },
+            "BOX_WEBHOOK_ID": {
+              "Ref": "BoxWebhookId"
+            }
+          }
+        },
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "ApiLogGroup"
+          },
+          "LogFormat": "JSON"
+        },
+        "Events": {
+          "GetState": {
+            "Type": "HttpApi",
+            "Properties": {
+              "ApiId": {
+                "Ref": "TallyHttpApi"
+              },
+              "Path": "/api/state",
+              "Method": "GET",
+              "PayloadFormatVersion": "2.0",
+              "Auth": {
+                "Authorizer": "AWS_IAM"
+              },
+              "TimeoutInMillis": 29000
+            }
+          },
+          "PutProfile": {
+            "Type": "HttpApi",
+            "Properties": {
+              "ApiId": {
+                "Ref": "TallyHttpApi"
+              },
+              "Path": "/api/profile",
+              "Method": "PUT",
+              "PayloadFormatVersion": "2.0",
+              "Auth": {
+                "Authorizer": "AWS_IAM"
+              },
+              "TimeoutInMillis": 29000
+            }
+          },
+          "Analyze": {
+            "Type": "HttpApi",
+            "Properties": {
+              "ApiId": {
+                "Ref": "TallyHttpApi"
+              },
+              "Path": "/api/demo/analyze",
+              "Method": "POST",
+              "PayloadFormatVersion": "2.0",
+              "Auth": {
+                "Authorizer": "AWS_IAM"
+              },
+              "TimeoutInMillis": 29000
+            }
+          },
+          "Reconcile": {
+            "Type": "HttpApi",
+            "Properties": {
+              "ApiId": {
+                "Ref": "TallyHttpApi"
+              },
+              "Path": "/api/demo/reconcile",
+              "Method": "POST",
+              "PayloadFormatVersion": "2.0",
+              "Auth": {
+                "Authorizer": "AWS_IAM"
+              },
+              "TimeoutInMillis": 29000
+            }
+          },
+          "BoxWebhook": {
+            "Type": "HttpApi",
+            "Properties": {
+              "ApiId": {
+                "Ref": "TallyHttpApi"
+              },
+              "Path": "/webhooks/box",
+              "Method": "POST",
+              "PayloadFormatVersion": "2.0",
+              "Auth": {
+                "Authorizer": "NONE"
+              },
+              "TimeoutInMillis": 29000
+            }
+          }
+        }
+      },
+      "Metadata": {
+        "BuildMethod": "esbuild",
+        "BuildProperties": {
+          "EntryPoints": [
+            "services/api/handler.ts"
+          ],
+          "Format": "esm",
+          "Target": "es2022",
+          "Minify": true,
+          "Sourcemap": false,
+          "OutExtension": [
+            ".js=.mjs"
+          ]
+        }
+      }
+    },
+    "WorkerFunction": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "FunctionName": {
+          "Fn::Sub": "${ResourcePrefix}-worker"
+        },
+        "CodeUri": "../",
+        "Handler": "services/worker/handler.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "WorkerRole",
+            "Arn"
+          ]
+        },
+        "Timeout": 120,
+        "ReservedConcurrentExecutions": 2,
+        "Environment": {
+          "Variables": {
+            "TALLY_TABLE_NAME": {
+              "Ref": "StateTable"
+            },
+            "TALLY_QUEUE_URL": {
+              "Ref": "WorkQueue"
+            },
+            "TALLY_DEMO_TENANT_ID": "demo-bakery-001",
+            "TALLY_TAX_YEAR": "2025",
+            "TALLY_RULE_SET_ID": "us-federal-irc45r-2025-v1",
+            "EXTRACTION_SCHEMA_VERSION": "tally-extract-v1",
+            "LIVE_PROVIDERS_ENABLED": {
+              "Ref": "LiveProvidersEnabled"
+            },
+            "BOX_INPUT_FOLDER_ID": {
+              "Ref": "BoxInputFolderId"
+            },
+            "MAX_PDF_BYTES": "1048576",
+            "MAX_PDF_PAGES": "2",
+            "BOX_CREDENTIALS_SECRET_ARN": {
+              "Ref": "BoxCredentialsSecretArn"
+            },
+            "TALLY_EXPLANATION_ADAPTER": "strands",
+            "BEDROCK_REGION": "us-east-1",
+            "BEDROCK_MODEL_ID": {
+              "Ref": "BedrockModelId"
+            }
+          }
+        },
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "WorkerLogGroup"
+          },
+          "LogFormat": "JSON"
+        },
+        "Events": {
+          "Jobs": {
+            "Type": "SQS",
+            "Properties": {
+              "Queue": {
+                "Fn::GetAtt": [
+                  "WorkQueue",
+                  "Arn"
+                ]
+              },
+              "BatchSize": 1,
+              "MaximumBatchingWindowInSeconds": 0,
+              "FunctionResponseTypes": [
+                "ReportBatchItemFailures"
+              ],
+              "ScalingConfig": {
+                "MaximumConcurrency": 2
+              }
+            }
+          }
+        }
+      },
+      "Metadata": {
+        "BuildMethod": "esbuild",
+        "BuildProperties": {
+          "EntryPoints": [
+            "services/worker/handler.ts"
+          ],
+          "Format": "esm",
+          "Target": "es2022",
+          "Minify": true,
+          "Sourcemap": false,
+          "OutExtension": [
+            ".js=.mjs"
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ApiUrl": {
+      "Description": "IAM-sign the four /api routes. Only the Box webhook route is public.",
+      "Value": {
+        "Fn::Sub": "https://${TallyHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}"
+      }
+    },
+    "BoxWebhookUrl": {
+      "Value": {
+        "Fn::Sub": "https://${TallyHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/webhooks/box"
+      }
+    },
+    "QueueUrl": {
+      "Value": {
+        "Ref": "WorkQueue"
+      }
+    },
+    "DeadLetterQueueUrl": {
+      "Value": {
+        "Ref": "DeadLetterQueue"
+      }
+    },
+    "TableName": {
+      "Value": {
+        "Ref": "StateTable"
+      }
+    }
+  }
+}
