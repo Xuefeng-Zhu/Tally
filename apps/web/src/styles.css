@@ -6,3 +6,6 @@
 
 /* Keep source notes and unresolved states legible on the cream paper. */
 .panel-intro,.fixture-note,.field-note,.check-row p,.annual-row p,.annual-intro,.fact-meta,.locator,.estimate-note p,.assessment-note p,.document-status,.save-message{color:#68725e}.result-label.unknown{color:#77735d}.annual-result.unknown{color:#726039}.interim-note{color:#7a735e}.provenance-strip strong{color:#627056}.provenance-strip span{color:#777b67}
+.record-panel .button.primary{min-width:0;max-width:none;margin-top:12px}
+
+.status-dot.attention{background:#a6712e}.workspace-status.needs-attention{color:#8c622b}.intake-errors{margin-top:20px}.intake-errors>h3{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#8c622b}.intake-errors .document-row>div{min-width:0}.intake-errors strong{font-size:11px;overflow-wrap:anywhere}.intake-errors p{font-size:10px;line-height:1.6;margin:8px 0 0;color:#68725e}.intake-errors .document-icon{color:#a6712e}.intake-error-code code{font-size:9px;overflow-wrap:anywhere;color:#8c622b}

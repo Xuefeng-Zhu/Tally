@@ -73,6 +73,7 @@ export function useWorkspace() {
     state, error, busy, loading,
     saveProfile: (profile: Profile) => run('profile', '/api/profile', {expected_profile_rev: stateRef.current?.profile_rev ?? 0, profile}, 'PUT'),
     loadFixture: (id: 'fixture-A' | 'fixture-B') => run(id, '/api/demo/analyze', {file_ids: [id]}),
+    analyzeInbox: () => run('inbox', '/api/demo/analyze', {}),
     reconcile: () => run('reconcile', '/api/demo/reconcile', {}),
   };
 }

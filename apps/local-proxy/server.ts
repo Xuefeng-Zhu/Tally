@@ -8,8 +8,11 @@ import {createApi} from '../../services/api/app.js';
 import {readConfiguration} from '../../packages/contracts/configuration.js';
 import {createAwsForwarder} from './signed-upstream.js';
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
-export async function startServer(options:{port?:number;dataPath?:string}={}) {
+export async function startServer(options:{port?:number;dataPath?:string;webOrigin?:string}={}) {
  const config=readConfiguration();
+ const webOrigin=options.webOrigin??process.env.TALLY_WEB_ORIGIN??'http://127.0.0.1:5173';
+ if(!/^http:\/\/(?:127\.0\.0\.1|localhost):[0-9]{1,5}$/.test(webOrigin)||Number(new URL(webOrigin).port)>65535)throw new Error('The configured web origin must be a local HTTP origin.');
+ const webOrigins=[webOrigin,webOrigin.replace('127.0.0.1','localhost')];
  const forward=config.mode==='aws'?createAwsForwarder({apiOrigin:config.apiOrigin??'',approvedLiveFlow:process.env.TALLY_APPROVED_LIVE_FLOW==='true'}):null;
  const store=new FileStore(options.dataPath??process.env.TALLY_DATA_PATH??resolve(ROOT,'.data/state.json'));
  const engine=new TallyEngine(store);
@@ -21,7 +24,7 @@ export async function startServer(options:{port?:number;dataPath?:string}={}) {
   const address=server.address();const port=typeof address==='object'&&address?address.port:4318;
   const allowedHosts=[`127.0.0.1:${port}`,`localhost:${port}`];
   const origin=req.headers.origin;
-  if(!allowedHosts.includes(req.headers.host??'') || (origin && !['http://127.0.0.1:5173','http://localhost:5173',`http://127.0.0.1:${port}`,`http://localhost:${port}`].includes(origin))){res.writeHead(403,{'Content-Type':'application/json'});res.end(JSON.stringify({code:'FORBIDDEN_ORIGIN',message:'Only the local Tally app may access this server.',retryable:false,correlation_id:'local-boundary'}));return;}
+  if(!allowedHosts.includes(req.headers.host??'') || (origin && ![...webOrigins,`http://127.0.0.1:${port}`,`http://localhost:${port}`].includes(origin))){res.writeHead(403,{'Content-Type':'application/json'});res.end(JSON.stringify({code:'FORBIDDEN_ORIGIN',message:'Only the local Tally app may access this server.',retryable:false,correlation_id:'local-boundary'}));return;}
   if(origin)res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','no-store');
   if(req.method==='OPTIONS'){res.writeHead(204,{'Access-Control-Allow-Methods':'GET,PUT,POST','Access-Control-Allow-Headers':'content-type'});res.end();return;}
   let url:URL;try{url=new URL(req.url??'/',`http://127.0.0.1:${port}`);}catch{res.writeHead(400);res.end();return;}
