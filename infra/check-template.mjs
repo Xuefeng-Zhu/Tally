@@ -32,8 +32,10 @@ assert.equal(worker.Environment.Variables.BEDROCK_REGION, 'us-east-1');
 assert.deepEqual(worker.Environment.Variables.BEDROCK_MODEL_ID, { Ref: 'BedrockModelId' });
 assert.equal(template.Parameters.BedrockModelId.Default, MODEL.model_id);
 assert.deepEqual(template.Parameters.BedrockModelId.AllowedValues, [MODEL.model_id]);
-assert.equal(template.Parameters.BedrockModelArn.Default, MODEL.model_arn);
-assert.deepEqual(template.Parameters.BedrockModelArn.AllowedValues, [MODEL.model_arn]);
+assert.equal(template.Parameters.BedrockModelArn, undefined);
+assert.equal(MODEL.model_id,'us.openai.gpt-6-luna');
+assert.equal(MODEL.region,'us-east-1');
+assert.deepEqual(MODEL.destination_regions,['us-east-1','us-east-2','us-west-2']);
 assert.deepEqual(resources.TallyHttpApi.Properties.Auth, { EnableIamAuthorizer: true, DefaultAuthorizer: 'AWS_IAM' });
 const expectedRoutes = new Map([
   ['GET /api/state', 'AWS_IAM'],
@@ -64,7 +66,7 @@ for (const name of ['ApiFunction', 'WorkerFunction']) {
 for (const name of ['ApiRole', 'WorkerRole']) {
   const statements = resources[name].Properties.Policies[0].PolicyDocument.Statement;
   for (const statement of statements) {
-    assert.notEqual(statement.Resource, '*');
+    assert.ok(!JSON.stringify(statement.Resource).includes('*'));
     assert.ok(statement.Action.every(action => !action.includes('*')));
     assert.ok(!statement.Action.includes('logs:CreateLogGroup'));
   }
@@ -75,9 +77,18 @@ for (const name of ['ApiRole', 'WorkerRole']) {
 }
 const apiStatements = resources.ApiRole.Properties.Policies[0].PolicyDocument.Statement;
 assert.ok(apiStatements.every(statement => statement.Action.every(action => !action.startsWith('bedrock:'))));
-const model = resources.WorkerRole.Properties.Policies[0].PolicyDocument.Statement.find(statement => statement.Sid === 'InvokeExactDirectModel');
-assert.deepEqual(model.Action, ['bedrock:InvokeModel']);
-assert.deepEqual(model.Resource, { Ref: 'BedrockModelArn' });
+const bedrockStatements=resources.WorkerRole.Properties.Policies[0].PolicyDocument.Statement.filter(statement=>statement.Action.some(action=>action.startsWith('bedrock:')));
+assert.equal(bedrockStatements.length,3);
+for(const statement of bedrockStatements)assert.deepEqual(statement.Action,['bedrock:InvokeModel']);
+const profile=bedrockStatements.find(statement=>statement.Sid==='InvokeExactLunaProfile');
+assert.deepEqual(profile.Resource,{'Fn::Sub':MODEL.inference_profile_arn_template});
+assert.equal(profile.Condition,undefined);
+const project=bedrockStatements.find(statement=>statement.Sid==='InvokeLunaDefaultProject');
+assert.deepEqual(project.Resource,{'Fn::Sub':MODEL.default_project_arn_template});
+const foundations=bedrockStatements.find(statement=>statement.Sid==='InvokeLunaDestinationsThroughProfile');
+assert.deepEqual(foundations.Resource,[...MODEL.foundation_model_arns]);
+assert.deepEqual(foundations.Condition,{StringEquals:{'bedrock:InferenceProfileArn':{'Fn::Sub':MODEL.inference_profile_arn_template}}});
+assert.ok(bedrockStatements.every(statement=>!JSON.stringify(statement).includes('global.openai')));
 const makefile=await readFile(new URL('../Makefile',import.meta.url),'utf8');
 for(const name of ['ApiFunction','WorkerFunction'])assert.ok(makefile.includes(`build-${name}:`));
 console.log('Offline SAM contract checks passed: exact routes, auth, queue limits, runtime, IAM scopes, existing secrets, and disabled live gate.');

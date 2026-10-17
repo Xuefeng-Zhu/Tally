@@ -2,7 +2,8 @@
 
 Executed on the user's Mac using project-local Node 22.23.3. Fixture execution uses no provider credentials and makes no Box/Bedrock calls.
 
-- **105/105 offline tests passed**, with external networking blocked. Coverage includes API validation/status, raw webhook authentication and durable acknowledgment, complete mocked manual API→SQS→INGEST/EVALUATE flow, secret rotation and identity checks, actual bounded PDF parsing, official source reference validation, version races and retries, batch queue recovery, evidence invariants and aggregate Dynamo CAS.
+- **114/114 offline tests passed**, with external networking blocked. Coverage includes API validation/status, raw webhook authentication and durable acknowledgment, complete mocked manual API→SQS→INGEST/EVALUATE flow, secret rotation and identity checks, actual bounded PDF parsing, official source reference validation, version races and retries, batch queue recovery, evidence invariants and aggregate Dynamo CAS.
+- Nine Luna-specific tests exercise the actual installed Strands→Bedrock request serialization with a mocked HTTP transport, strict JSON schema, reasoning removal and fallback handling. They verify offline compatibility only.
 - TypeScript typecheck and React/Vite production build passed.
 - Both Lambda artifacts passed isolated Mac ARM64 handler/native dependency loading and actual PDF parsing outside the repository. Network access was blocked. These host artifacts explicitly reject deployment; see [packaging](packaging.md).
 - Offline SAM contract checks and cfn-lint/SAM transform passed without warnings. SAM CLI is absent and Docker's daemon is unavailable, so the Linux ARM64 container build has not run.
@@ -19,4 +20,4 @@ The original ZIP/contracts/PDFs remain unavailable; exact handoff parity is pend
 
 P01 Box AI, P02 Strands/Bedrock, deployed IAM/Secrets Manager/SQS/webhook behavior, and Linux ARM64 SAM packaging remain unverified. Production download/PDF bounds/hashes/reference normalization, lazy secrets, durable intake and worker wiring are implemented and tested with mocked provider/SDK transports. No actual secret read, provider call, credential creation/configuration, deployment, push, sharing, publication or submission occurred.
 
-These acceptance statements concern the interim local implementation and mocked integration. They do not certify live acceptance gates. Qwen remains the centralized default pending any explicitly approved comparison.
+These acceptance statements concern the interim local implementation and mocked integration. They do not certify live acceptance gates. The user-selected Luna model is centralized; its live account access remains unverified.

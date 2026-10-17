@@ -45,19 +45,11 @@
     },
     "BedrockModelId": {
       "Type": "String",
-      "Default": "qwen.qwen3-next-80b-a3b",
+      "Default": "us.openai.gpt-6-luna",
       "AllowedValues": [
-        "qwen.qwen3-next-80b-a3b"
+        "us.openai.gpt-6-luna"
       ],
-      "Description": "Final price/performance selection: Qwen3 Next 80B A3B. Live calls require separate approval."
-    },
-    "BedrockModelArn": {
-      "Type": "String",
-      "Default": "arn:aws:bedrock:us-east-1::foundation-model/qwen.qwen3-next-80b-a3b",
-      "AllowedValues": [
-        "arn:aws:bedrock:us-east-1::foundation-model/qwen.qwen3-next-80b-a3b"
-      ],
-      "Description": "Exact us-east-1 direct Qwen3 Next 80B A3B ARN. No profiles or wildcard model permission."
+      "Description": "Exact user-selected Bedrock Runtime US GPT-6 Luna inference profile, invoked from us-east-1. Live calls require separate approval."
     },
     "ApprovedLiveFlow": {
       "Type": "String",
@@ -329,13 +321,42 @@
                   }
                 },
                 {
-                  "Sid": "InvokeExactDirectModel",
+                  "Sid": "InvokeExactLunaProfile",
                   "Effect": "Allow",
                   "Action": [
                     "bedrock:InvokeModel"
                   ],
                   "Resource": {
-                    "Ref": "BedrockModelArn"
+                    "Fn::Sub": "arn:aws:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.openai.gpt-6-luna"
+                  }
+                },
+                {
+                  "Sid": "InvokeLunaDefaultProject",
+                  "Effect": "Allow",
+                  "Action": [
+                    "bedrock:InvokeModel"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:aws:bedrock:us-east-1:${AWS::AccountId}:project/default"
+                  }
+                },
+                {
+                  "Sid": "InvokeLunaDestinationsThroughProfile",
+                  "Effect": "Allow",
+                  "Action": [
+                    "bedrock:InvokeModel"
+                  ],
+                  "Resource": [
+                    "arn:aws:bedrock:us-east-1::foundation-model/openai.gpt-6-luna",
+                    "arn:aws:bedrock:us-east-2::foundation-model/openai.gpt-6-luna",
+                    "arn:aws:bedrock:us-west-2::foundation-model/openai.gpt-6-luna"
+                  ],
+                  "Condition": {
+                    "StringEquals": {
+                      "bedrock:InferenceProfileArn": {
+                        "Fn::Sub": "arn:aws:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.openai.gpt-6-luna"
+                      }
+                    }
                   }
                 }
               ]
