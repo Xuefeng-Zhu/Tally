@@ -1,0 +1,9 @@
+{
+  "rule_set_id": "us-federal-irc45r-2025-v1",
+  "tax_year": 2025,
+  "specification_status": "interim_reconstructed",
+  "purpose": "Evidence readiness only; never determines eligibility or estimates a credit.",
+  "rule_source_ids": ["irc-45r", "form-8941-instructions-2025"],
+  "annual_requirements": ["annual_fte", "annual_fica_wages", "owner_family_exclusions", "related_employer_aggregation", "shop_or_exception", "qualifying_arrangement", "credit_period", "annual_net_premiums_and_limits"],
+  "constraints": ["Partial payroll is never annualized", "A recorded payment is distinct from a stated contribution", "No payment-to-coverage match without explicit matching evidence", "Stated share requires positive reconciled premium components for one valid period", "No eligibility or dollar estimate from these fixtures"]
+}

@@ -7,3 +7,5 @@ dist/
 artifacts/private/
 *.log
 .DS_Store
+.artifacts/
+.aws-sam/
