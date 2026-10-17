@@ -458,3 +458,81 @@ test('a USD substring inside a different source token cannot verify currency or 
   assert.equal(fact(source, 'currency').verification_state, 'needs_review');
   assert.notEqual(fact(source, 'recorded_payment_amount').verification_state, 'source_supported');
 });
+
+
+test('native reference core remains verifiable when Box adds harmless metadata', () => {
+  const quoted = coreReferences.recorded_payment_amount[0]!;
+  const baseline = answerSource(coreAnswer, coreReferences);
+  const source = answerSource(coreAnswer, { ...coreReferences, recorded_payment_amount: [{
+    ...quoted,
+    bounding_box: { left: 0.1, top: 0.2, right: 0.8, bottom: 0.4 },
+    processor_metadata: { version: 'IGNORED_NATIVE_REFERENCE_METADATA', extra: ['not evidence'] },
+    display_label: 'IGNORED_NATIVE_REFERENCE_METADATA',
+  }] });
+  const amount = fact(source, 'recorded_payment_amount');
+  assert.equal(amount.verification_state, 'source_supported');
+  assert.equal(amount.value, 120000);
+  assert.deepEqual(amount.source, fact(baseline, 'recorded_payment_amount').source);
+  assert.equal(JSON.stringify(source).includes('IGNORED_NATIVE_REFERENCE_METADATA'), false, 'Unknown metadata never becomes source evidence');
+});
+
+test('extra native metadata cannot bypass file, page, quote, value or bounding-box checks', () => {
+  const quoted = coreReferences.recorded_payment_amount[0]!;
+  const invalid = [
+    { ...quoted, item_id: '101' },
+    { ...quoted, item_id: undefined },
+    { ...quoted, page: -1 },
+    { ...quoted, page: 2 },
+    { ...quoted, page: 0.5 },
+    { ...quoted, page: '0' },
+    { ...quoted, text: '' },
+    { ...quoted, text: 'x'.repeat(2001) },
+    { ...quoted, text: 'Invented payment: $1,200.00.' },
+    { ...quoted, text: 'Stated employee contribution: $300.00.' },
+    { ...quoted, bounding_box: { left: -0.1, top: 0, right: 1, bottom: 1 } },
+    { ...quoted, bounding_box: { left: 0.8, top: 0, right: 0.2, bottom: 1 } },
+    { ...quoted, bounding_box: { left: 0, top: 0.8, right: 1, bottom: 0.2 } },
+    { ...quoted, bounding_box: { left: 0, top: 0, right: 1, bottom: Infinity } },
+    { ...quoted, bounding_box: { left: 0, top: 0, right: 1 } },
+  ];
+  for (const bad of invalid) {
+    const source = answerSource(coreAnswer, { ...coreReferences, recorded_payment_amount: [{ ...bad, processor_metadata: { valid: true } }] });
+    const amount = fact(source, 'recorded_payment_amount');
+    assert.equal(amount.verification_state, 'needs_review');
+    assert.notEqual(amount.source.locator.kind, 'verified_page');
+  }
+  const mismatchedValue = answerSource({ ...coreAnswer, recorded_payment_amount: 1500 }, { ...coreReferences, recorded_payment_amount: [{ ...quoted, extra_metadata: true }] });
+  assert.equal(fact(mismatchedValue, 'recorded_payment_amount').verification_state, 'needs_review');
+});
+
+test('unknown aliases and inherited core fields never supply missing native reference proof', () => {
+  const quoted = coreReferences.recorded_payment_amount[0]!;
+  const aliases = [
+    { file_id: '100', page_number: 0, excerpt: quoted.text },
+    { item_id: '100', page_number: 0, text: quoted.text },
+    { item_id: '100', page: 0, excerpt: quoted.text },
+    Object.assign(Object.create({ item_id: '100' }), { page: 0, text: quoted.text }),
+    Object.assign(Object.create({ page: 0 }), { item_id: '100', text: quoted.text }),
+    Object.assign(Object.create({ text: quoted.text }), { item_id: '100', page: 0 }),
+  ];
+  for (const reference of aliases) {
+    const source = answerSource(coreAnswer, { ...coreReferences, recorded_payment_amount: [reference] });
+    assert.equal(fact(source, 'recorded_payment_amount').verification_state, 'needs_review');
+    assert.notEqual(fact(source, 'recorded_payment_amount').source.locator.kind, 'verified_page');
+  }
+});
+
+test('an unknown confidence object remains unavailable even with valid native reference core and metadata', () => {
+  const source = answerSource(coreAnswer, { ...coreReferences, recorded_payment_amount: [{ ...coreReferences.recorded_payment_amount[0]!, metadata: true }] }, { confidence_score: { recorded_payment_amount: { score: 0.99, rating: 'high' } } });
+  assert.equal(fact(source, 'recorded_payment_amount').verification_state, 'source_supported');
+  assert.equal(fact(source, 'recorded_payment_amount').raw_provider_confidence, null);
+});
+
+// Synthetic erased-capture stand-in: the actual live A capture lost every rejected reference.
+// Matching scalar answers alone cannot reconstruct those erased provider quotes.
+test('a previously erased-reference capture cannot be repaired into supported evidence offline', () => {
+  const source = answerSource(coreAnswer, { business_name: [], currency: [], recorded_payment_amount: [], payment_date: [] }, { confidence_score: { business_name: null, currency: null, recorded_payment_amount: null, payment_date: null }, completion_reason: 'done' });
+  assert.equal(source.business_name, null);
+  assert.equal(source.facts.filter(item => item.verification_state === 'source_supported').length, 0);
+  assert.ok(source.facts.every(item => item.source.locator.kind !== 'verified_page'));
+});

@@ -68,7 +68,8 @@ function proof(reference:unknown,pdf:PdfSnapshot,value:Fact['value'],kind:string
  if(!Array.isArray(reference)||reference.length<1||reference.length>8)return bad();
  const checked:{page:number;text:string}[]=[];
  for(const ref of reference){
-  if(!record(ref)||Object.keys(ref).some(key=>!['item_id','page','text','bounding_box'].includes(key))||ref.item_id!==fileId||!Number.isInteger(ref.page)||Number(ref.page)<0||Number(ref.page)>=pdf.pageCount||typeof ref.text!=='string'||ref.text.length<1||ref.text.length>2000)return bad();
+  // Box's response dictionaries are open: ignore extra metadata, but never infer missing core fields.
+  if(!record(ref)||!['item_id','page','text'].every(key=>Object.hasOwn(ref,key))||ref.item_id!==fileId||!Number.isInteger(ref.page)||Number(ref.page)<0||Number(ref.page)>=pdf.pageCount||typeof ref.text!=='string'||ref.text.length<1||ref.text.length>2000)return bad();
   if(ref.bounding_box!==undefined&&ref.bounding_box!==null){
    const box=ref.bounding_box;
    if(!record(box)||Object.keys(box).length!==4||!['left','top','right','bottom'].every(key=>typeof box[key]==='number'&&Number.isFinite(box[key])&&Number(box[key])>=0&&Number(box[key])<=1)||Number(box.left)>=Number(box.right)||Number(box.top)>=Number(box.bottom))return bad();
