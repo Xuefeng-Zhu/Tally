@@ -2,7 +2,7 @@
 
 ## Required disclosure
 
-The recording uses a fictional Juniper Lane Bakery and reconstructed historical 2025 records. **Document extraction is fixture-based unless the actual recording proves otherwise.** The selected explanation provider is OpenRouter exact `openai/gpt-6-luna`; final local integration and accepted runtime results are pending. A real accepted explanation may be called live OpenRouter only when the current receipt/UI shows that mode. A deterministic fallback must remain labeled fallback.
+The recording uses a fictional Juniper Lane Bakery and reconstructed historical 2025 records. **Document extraction is fixture-based unless the actual recording proves otherwise.** The selected explanation provider is OpenRouter exact `openai/gpt-6-luna`; its isolated fixture-backed A/B run accepted both real explanations and passed all ten browser checks; the main checkout’s integration checks remain pending. A real accepted explanation may be called live OpenRouter only when the current receipt/UI shows that mode. A deterministic fallback must remain labeled fallback.
 
 One separate actual Box upload/extraction and deployed disabled AWS infrastructure are partial integration evidence. Neither proves the complete Box → AWS → explanation → page flow. Do not imply that a synthetic fixture action uploaded anything to Box, ran Lambda or wrote DynamoDB.
 
@@ -44,8 +44,8 @@ Do not compress a still-running request into a claimed result. Extend within the
 
 - Actual Box evidence: upload 201/extraction 200, six observed values matched, zero accepted citations, dollar-only currency. Do not call this accepted source-supported normalization.
 - Actual AWS evidence: deployed disabled resources and passed packaging probes. Do not claim live webhook/SQS/DynamoDB application processing from their existence.
-- OpenRouter: six earlier reported calls cost USD 0.0021400 total; latest two fell back and final tests are pending. Do not quote this as whole-project spend or a success rate.
+- OpenRouter: final isolated A/B passed 2/2 at source `5bb11db`, exact `openai/gpt-6-luna`/OpenAI, HTTP200/stop, plus ten browser checks. A 2474 input/205 output tokens cost USD 0.0003499; B 3124 input/240 output cost USD 0.0004324. Final pair USD 0.0007823; all eight requests USD 0.0029223 in provider usage metadata. Main-checkout integration checks remain pending; do not call this full Box/AWS E2E or whole-project spend.
 - Keep any provider error/fallback visible and label it. No model rotation or unapproved repeat call to improve a take.
-- Two earlier 84-second recordings are fixture-only; a new recording requires actual playback verification. Do not relabel them as live.
+- The verified 84.24-second fixture baseline is `.artifacts/redesign-demo/tally-redesign-demo.mp4`. The isolated real-explanation verification created no recording. A new recording needs actual playback verification; do not relabel the baseline as live.
 - The original ZIP/contracts/PDFs remain unavailable. No exact handoff parity, eligibility, savings, annual estimate or event-compliance certification is claimed.
-- Publication, access grants and submission remain separate actions. See [submission checklist](submission-checklist.md).
+- The user reported official form submission at 18:43 UTC; do not submit a duplicate. Any separately requested publication, access change or amendment remains a distinct action. See [submission checklist](submission-checklist.md).

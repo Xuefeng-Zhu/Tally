@@ -1,6 +1,6 @@
 # Tally delivery and submission checklist
 
-This is a local delivery checklist, not a submitted entry. Final external sharing, repository visibility changes and hackathon submission require their own authorization. Keep the actual recording and source commit aligned with the disclosures below.
+The user reported submitting the official form at **18:43 UTC on 2026-10-17**. This checklist records that report without independently verifying organizer acknowledgment. Do not perform a duplicate submission. Any later publication, visibility change or requested amendment remains a separate action; keep material updates aligned with the actual recording and source commit.
 
 ## Deadline and organizer requirements
 
@@ -20,8 +20,8 @@ The current delivery target is a code freeze at **19:20 UTC** and reviewed packa
 | Product | Verified local profile/A/B journey, same opportunity, 80% monthly share, eight annual Unknowns, PDF links, duplicate/restart recovery | Reconstructed synthetic fixtures; no eligibility or annual credit estimate |
 | Box | One real upload 201 and extraction 200; six observed source values matched | Zero accepted citations in saved capture; `$` is not proof of USD; complete source-supported normalization/E2E unproven |
 | AWS | Reviewed disabled stack and private artifact storage deployed; both ARM64 Lambda packaging probes passed | Both live gates false; deployed resources are not proof of webhook/SQS/DynamoDB application flow |
-| Explanation | User selected OpenRouter exact `openai/gpt-6-luna`; final integration/tests pending | Six prior calls reportedly USD 0.0021400 total, latest two fallback; do not claim final acceptance until a current guarded runtime receipt exists |
-| Recording | Two existing actual fixture videos | New delivery recording pending; do not relabel a fixture video as full live E2E |
+| Explanation | Isolated source `5bb11db`: exact OpenRouter `openai/gpt-6-luna`/OpenAI, **2/2 accepted**, HTTP200/stop, ten browser checks passed | Fixture extraction plus real explanation; main-checkout integration checks pending. Final pair USD 0.0007823; eight-call ledger USD 0.0029223 |
+| Recording | Verified 84.24s fixture baseline `.artifacts/redesign-demo/tally-redesign-demo.mp4` plus earlier fixture recording | Isolated real-explanation verification created no recording; do not relabel baseline as full live E2E |
 
 The event asks for Box and AWS. Describe the actual demonstrated role and limits of each; a local OpenRouter explanation does not retroactively prove AWS processing or accepted Box citations. Do not certify event compliance from these partial observations.
 
@@ -56,6 +56,6 @@ Use the [90-second capture plan and three-minute talk](demo-script.md). Existing
 - [ ] Verify judges can access the approved source/video URLs through the intended method.
 - [ ] Resolve the original handoff or disclose that the exact contracts/PDFs remain unreconciled.
 - [ ] Reconcile provider/infrastructure spend against the USD 10 total ceiling; no Box purchase is authorized.
-- [ ] Assemble a concrete draft with project description, team, approved source and video links and the actual integration limitations.
-- [ ] Obtain final authorization before publishing/sharing/submitting or accepting new terms.
-- [ ] Retain the real organizer confirmation only after successful authorized submission. No submission receipt is established by this checklist.
+- [ ] For separately requested material updates, retain the project description, approved source/video links and actual integration limitations; do not re-open or resubmit the form implicitly.
+- [x] User reported official form submission at 18:43 UTC. No duplicate form action was performed by this documentation task.
+- [ ] Retain the organizer confirmation if supplied through the parent/user; the reported submission is not an independently inspected receipt.

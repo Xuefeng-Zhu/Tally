@@ -4,7 +4,7 @@ Tally helps a small-business owner turn scattered records into an evidence-backe
 
 The **Rule library** contains ten distinct 2025 federal opportunities: five credits and five deductions, with official IRS sources, claimant scope and missing evidence. Nine have offline profile screening only; the health credit retains the tested two-document fixture flow. All remain professionally unreviewed, live E2E is unverified, and screening does not activate a claim or calculate savings. See the [versioned library](rules/2025/opportunity-library.json) and [deterministic screening](packages/rules/library.ts).
 
-**Current delivery:** a runnable local product with synthetic records and a verified offline fixture flow. The user-selected explanation target is **OpenRouter `openai/gpt-6-luna`**; its final local runtime verification and new recording are pending. One actual Box upload/extraction and a deployed disabled AWS stack provide separate partial evidence. Full Box → AWS → explanation → page E2E is **not proven**. No eligibility decision or credit estimate is produced from these partial records.
+**Current delivery:** a runnable local product with synthetic records and a verified offline fixture flow. The user-selected explanation target is **OpenRouter `openai/gpt-6-luna`**; its isolated A/B run passed both accepted explanations and all ten browser checks. Verification of the main checkout’s integrated runtime and any new recording remain pending. One actual Box upload/extraction and a deployed disabled AWS stack provide separate partial evidence. Full Box → AWS → explanation → page E2E is **not proven**. No eligibility decision or credit estimate is produced from these partial records.
 
 ## Try the product
 
@@ -89,7 +89,7 @@ flowchart LR
   C --> UI
 ```
 
-Fixture mode uses a local JSON store and local jobs. The implemented AWS path uses an IAM-authenticated API, signature-checked Box webhook, SQS, DynamoDB and Box structured extraction. Its reviewed stack is deployed with both live gates false; full application data flow remains unverified. The selected new explanation path is server-side OpenRouter `openai/gpt-6-luna`, with local integration in progress. Earlier Strands/Bedrock probes are historical provider evidence, not the selected demo path.
+Fixture mode uses a local JSON store and local jobs. The implemented AWS path uses an IAM-authenticated API, signature-checked Box webhook, SQS, DynamoDB and Box structured extraction. Its reviewed stack is deployed with both live gates false; full application data flow remains unverified. The selected new explanation path is server-side OpenRouter `openai/gpt-6-luna`, with isolated fixture-backed A/B acceptance verified and main-checkout integration checks pending. Earlier Strands/Bedrock probes are historical provider evidence, not the selected demo path.
 
 The deterministic evaluator owns statuses, facts, calculations, annual unknowns and next actions. AI can explain a valid result; it cannot decide eligibility, invent evidence or supply an unsupported amount. Read [architecture and data flow](docs/architecture.md).
 
@@ -100,8 +100,8 @@ The deterministic evaluator owns statuses, facts, calculations, annual unknowns 
 | Local fixture product | Profile → A → same-card B, 80% monthly share, source links, eight annual Unknowns, refresh/restart and recovery verified | Synthetic fixture extraction; no annual eligibility or estimate |
 | Actual Box test | One upload HTTP201 and one 18-field extraction HTTP200; six observed values matched the synthetic source | Zero accepted citations in the saved projection; `$` does not prove USD; full source-supported normalization is unverified |
 | AWS | Reviewed disabled stack CREATE_COMPLETE with 17 resources; Lambda/SQS/DynamoDB/API infrastructure and separate private S3 artifacts exist | Both live gates false; infrastructure and successful ARM64 packaging probes do not prove application E2E |
-| Selected explanations | OpenRouter exact `openai/gpt-6-luna`; final integration verification pending | Earlier reported six calls cost USD 0.0021400 in total; latest two fell back. Final two tests/results are pending; this is not an acceptance claim |
-| New demo recording | Pending final runtime verification | Existing two recordings show fixture execution only |
+| Selected explanations | Isolated OpenRouter `openai/gpt-6-luna` A/B: **2/2 accepted**, HTTP200/stop, observed provider OpenAI; all ten browser checks passed at source `5bb11db` | Fixture intake/extraction plus real explanations; main-checkout integration checks pending. Final pair USD 0.0007823; cumulative eight-call provider ledger USD 0.0029223 |
+| Demo recording | Verified baseline `.artifacts/redesign-demo/tally-redesign-demo.mp4`, **84.24s** | Baseline is fixture-only. The isolated real-explanation verification created no recording; no new live video is claimed |
 | Full Box/AWS application journey | **NOT PROVEN** | No claim of genuine webhook → worker → accepted facts → current model explanation → UI success |
 
 The AWS deployment has no newly deployed OpenRouter credential or OpenRouter-specific runtime wiring. Do not enable cloud gates to try a local demo. The [organizer page](https://luma.com/bqo9xii4) asks projects to use Box and AWS; no Bedrock-only requirement was found in the reviewed rules. These facts do **not** certify event compliance or judge acceptance.
