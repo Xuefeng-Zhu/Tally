@@ -2,19 +2,21 @@
 
 Executed on the user's Mac using project-local Node 22.23.3. Fixture execution uses no provider credentials and makes no Box/Bedrock calls.
 
-- 43/43 offline regression tests passed: API validation/status, raw webhook signature/durable acknowledgment, partial evidence invariants, A/B and B-first convergence, content aliases, version interleavings, stale publication, crash recovery, two-worker claims, strict explanation fallback, aggregate Dynamo CAS and restricted signing proxy.
-- TypeScript typecheck passed.
-- React/Vite production build passed.
-- Both Lambda source boundaries bundled with esbuild for Node 22.
-- Offline SAM contract checks passed. Offline cfn-lint with SAM transform passed without warnings; SAM CLI itself is unavailable and sam build was not run.
-- Final real Chromium walkthrough passed: save profile, A, primary fixture action, B updates same card, stated share80%, eight separate annual unknowns, evidence PDF HTTP200, refresh persistence, no browser runtime errors or mobile horizontal overflow. Desktop/mobile screenshots were visually inspected.
-- Both smoke commands without their explicit approval flags exited before credentials/provider activity with LIVE_CALL_REQUIRES_EXPLICIT_APPROVAL. This is a gate test, not a successful live gate.
+- **105/105 offline tests passed**, with external networking blocked. Coverage includes API validation/status, raw webhook authentication and durable acknowledgment, complete mocked manual API→SQS→INGEST/EVALUATE flow, secret rotation and identity checks, actual bounded PDF parsing, official source reference validation, version races and retries, batch queue recovery, evidence invariants and aggregate Dynamo CAS.
+- TypeScript typecheck and React/Vite production build passed.
+- Both Lambda artifacts passed isolated Mac ARM64 handler/native dependency loading and actual PDF parsing outside the repository. Network access was blocked. These host artifacts explicitly reject deployment; see [packaging](packaging.md).
+- Offline SAM contract checks and cfn-lint/SAM transform passed without warnings. SAM CLI is absent and Docker's daemon is unavailable, so the Linux ARM64 container build has not run.
+- Real Chromium fixture A→B walkthrough passed: profile save, stable card, stated 80% share, eight separate annual unknowns, evidence PDF HTTP200, refresh persistence, and desktop/mobile layout. Additional manual/webhook UI checks passed with local mocks: inbox link, Analyze request, profile gate and visible failed intake. No browser runtime errors or external requests occurred.
+- Eight synthetic desktop/mobile review images were visually inspected and saved to Library; see [review images](review-images.md).
+- Both smoke commands without explicit approval flags exited before credentials/provider activity with LIVE_CALL_REQUIRES_EXPLICIT_APPROVAL. This verifies the guard only.
 - Final dependency install reported zero npm audit vulnerabilities.
 
-Generated evidence: `.artifacts/verification/offline-tests.tap`, `.artifacts/browser/desktop-a-then-b.png`, and `.artifacts/browser/mobile-a-then-b.png` (ignored by git).
+Generated local evidence: `.artifacts/verification/offline-tests.tap`, `.artifacts/verification/packaging.json`, `.artifacts/browser/`, and `.artifacts/review/` (ignored by git). The working demo state was preserved during verification.
 
-## Not verified / incomplete
+## Remaining verification
 
-No original ZIP/contracts/PDFs were obtained. Interim schema/fixture parity remains pending. P01/P02 and all cloud/IAM/Secrets Manager/SQS/webhook behavior against an actual account remain unverified. Actual source download/PDF bounds/SHA256/reference normalization and production webhook secret wiring remain incomplete; cloud handlers fail closed outside explicit fixture mode. No deployment, provider calls, credentials, pushes, sharing, publication or submission occurred.
+The original ZIP/contracts/PDFs remain unavailable; exact handoff parity is pending. The interim PDFs are unchanged and explicitly synthetic. Their missing explicit USD currency text deliberately prevents live normalization from promoting monetary candidates without valid source proof; the fixture goldens are separate labeled inputs.
 
-All acceptance statements above concern the implemented interim local fixture flow. They do not certify all live acceptance gates.
+P01 Box AI, P02 Strands/Bedrock, deployed IAM/Secrets Manager/SQS/webhook behavior, and Linux ARM64 SAM packaging remain unverified. Production download/PDF bounds/hashes/reference normalization, lazy secrets, durable intake and worker wiring are implemented and tested with mocked provider/SDK transports. No actual secret read, provider call, credential creation/configuration, deployment, push, sharing, publication or submission occurred.
+
+These acceptance statements concern the interim local implementation and mocked integration. They do not certify live acceptance gates. Qwen remains the centralized default pending any explicitly approved comparison.

@@ -58,6 +58,15 @@
         "arn:aws:bedrock:us-east-1::foundation-model/qwen.qwen3-next-80b-a3b"
       ],
       "Description": "Exact us-east-1 direct Qwen3 Next 80B A3B ARN. No profiles or wildcard model permission."
+    },
+    "ApprovedLiveFlow": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Description": "Explicit approval and passed provider gates are required separately. Default denies all live flow."
     }
   },
   "Globals": {
@@ -375,6 +384,10 @@
             },
             "BOX_WEBHOOK_ID": {
               "Ref": "BoxWebhookId"
+            },
+            "TALLY_EXECUTION_MODE": "aws",
+            "TALLY_APPROVED_LIVE_FLOW": {
+              "Ref": "ApprovedLiveFlow"
             }
           }
         },
@@ -463,19 +476,9 @@
         }
       },
       "Metadata": {
-        "BuildMethod": "esbuild",
-        "BuildProperties": {
-          "EntryPoints": [
-            "services/api/handler.ts"
-          ],
-          "Format": "esm",
-          "Target": "es2022",
-          "Minify": true,
-          "Sourcemap": false,
-          "OutExtension": [
-            ".js=.mjs"
-          ]
-        }
+        "BuildMethod": "makefile",
+        "BuildArchitecture": "arm64",
+        "TallyArtifactContract": "Linux ARM64 container; bundle, PDF resources/native binding, isolated parser verification"
       }
     },
     "WorkerFunction": {
@@ -521,6 +524,13 @@
             "BEDROCK_REGION": "us-east-1",
             "BEDROCK_MODEL_ID": {
               "Ref": "BedrockModelId"
+            },
+            "TALLY_EXECUTION_MODE": "aws",
+            "TALLY_APPROVED_LIVE_FLOW": {
+              "Ref": "ApprovedLiveFlow"
+            },
+            "BOX_WEBHOOK_ID": {
+              "Ref": "BoxWebhookId"
             }
           }
         },
@@ -553,19 +563,9 @@
         }
       },
       "Metadata": {
-        "BuildMethod": "esbuild",
-        "BuildProperties": {
-          "EntryPoints": [
-            "services/worker/handler.ts"
-          ],
-          "Format": "esm",
-          "Target": "es2022",
-          "Minify": true,
-          "Sourcemap": false,
-          "OutExtension": [
-            ".js=.mjs"
-          ]
-        }
+        "BuildMethod": "makefile",
+        "BuildArchitecture": "arm64",
+        "TallyArtifactContract": "Linux ARM64 container; bundle, PDF resources/native binding, isolated parser verification"
       }
     }
   },

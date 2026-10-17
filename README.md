@@ -4,7 +4,7 @@ Tally turns source evidence into a traceable next step for a small business. Thi
 
 ## Run locally
 
-The local dependency pins Node 22.23.3 for verification (the package supports 22.12 or newer, below 25). Run:
+The local dependency pins Node 22.23.3 for verification (the package supports 22.13 or newer, below 25). Run:
 
 ```sh
 npm install
@@ -45,4 +45,10 @@ The local API tests and real Chromium A-to-B walkthrough have passed on this Mac
 
 See [architecture](docs/architecture.md) for the ledger, version guards, idempotency, and provider boundaries. Live Box AI, live Strands/Bedrock, credentials, cloud deployment, external pushes, publication, and submission have **not been approved or verified**. Local fixture checks do not count as live provider validation. The user approved Qwen3 Next 80B A3B (`qwen.qwen3-next-80b-a3b`, direct `us-east-1`) as a model override; P02 remains unrun and no quality improvement is claimed. Smoke scripts are separate gates; do not run them without explicit approval.
 
-The AWS handler boundaries are deliberately gated. Production source/reference normalization and webhook secret wiring remain pending the approved provider gates; compiling the SAM scaffold does not demonstrate live integration. The original supplied model choice was superseded by the final user-approved value selection recorded in `packages/contracts/model.ts`.
+The AWS handler boundaries are deliberately gated. Bounded source PDF download and reference normalization, lazy webhook secrets, durable SQS ingress, and separate worker evaluation are implemented with mocked tests. The live flow is disabled until the provider gates and whole-flow approval are explicit; source compilation does not demonstrate live integration. The original supplied model choice was superseded by the final user-approved value selection recorded in `packages/contracts/model.ts`.
+
+## Production adapter implementation
+
+The server-side production path now includes bounded two-page/1MiB PDF download and parsing in an isolated worker, actual byte hashes, version checks before/after extraction, documented Box reference validation against source text, exact integer cents/date handling, lazy approved-secret loading, durable webhook intake and a separate leased INGEST/EVALUATE worker. These are verified with mock provider and SDK transports only. `npm test` blocks external networking and allows local loopback HTTP.
+
+Both `LIVE_PROVIDERS_ENABLED` and `TALLY_APPROVED_LIVE_FLOW` must be explicitly enabled after approval and successful provider gates. Neither flag constitutes human approval by itself. Unavailable or invalid secrets, source references, currencies, metadata, signatures or queue handoffs fail closed. See [provider details](docs/providers.md), [secret wiring](docs/secrets.md), and [review images](docs/review-images.md).

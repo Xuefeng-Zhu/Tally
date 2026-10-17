@@ -8,6 +8,7 @@ const resources = template.Resources;
 const byType = type => Object.values(resources).filter(resource => resource.Type === type);
 assert.equal(template.Transform, 'AWS::Serverless-2016-10-31');
 assert.equal(template.Globals.Function.Runtime, 'nodejs22.x');
+assert.deepEqual(template.Globals.Function.Architectures,['arm64']);
 assert.equal(byType('AWS::Serverless::Function').length, 2);
 assert.equal(byType('AWS::DynamoDB::Table').length, 1);
 assert.equal(byType('AWS::SQS::Queue').length, 2);
@@ -52,9 +53,11 @@ assert.equal(expectedRoutes.size, 0);
 for (const name of ['ApiFunction', 'WorkerFunction']) {
   const { Properties: fn, Metadata: metadata } = resources[name];
   assert.equal(fn.VpcConfig, undefined);
-  assert.equal(metadata.BuildMethod, 'esbuild');
-  assert.equal(metadata.BuildProperties.Format, 'esm');
-  assert.deepEqual(metadata.BuildProperties.OutExtension, ['.js=.mjs']);
+  assert.equal(metadata.BuildMethod, 'makefile');
+  assert.equal(metadata.BuildArchitecture, 'arm64');
+  assert.equal(metadata.BuildProperties, undefined);
+  assert.equal(fn.Handler, `services/${name==='ApiFunction'?'api':'worker'}/handler.handler`);
+  assert.equal(fn.CodeUri, '../');
   assert.deepEqual(fn.LoggingConfig.LogGroup, { Ref: name === 'ApiFunction' ? 'ApiLogGroup' : 'WorkerLogGroup' });
   assert.deepEqual(fn.Environment.Variables.LIVE_PROVIDERS_ENABLED, { Ref: 'LiveProvidersEnabled' });
 }
@@ -75,4 +78,6 @@ assert.ok(apiStatements.every(statement => statement.Action.every(action => !act
 const model = resources.WorkerRole.Properties.Policies[0].PolicyDocument.Statement.find(statement => statement.Sid === 'InvokeExactDirectModel');
 assert.deepEqual(model.Action, ['bedrock:InvokeModel']);
 assert.deepEqual(model.Resource, { Ref: 'BedrockModelArn' });
+const makefile=await readFile(new URL('../Makefile',import.meta.url),'utf8');
+for(const name of ['ApiFunction','WorkerFunction'])assert.ok(makefile.includes(`build-${name}:`));
 console.log('Offline SAM contract checks passed: exact routes, auth, queue limits, runtime, IAM scopes, existing secrets, and disabled live gate.');

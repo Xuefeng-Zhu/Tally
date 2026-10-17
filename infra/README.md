@@ -24,7 +24,7 @@ The API can read/write the single tenant state item, enqueue jobs, read the exis
 - `BoxCredentialsSecretArn`: an **existing**, approved Secrets Manager secret in `us-east-1`, with JSON fields `access_token` and `expected_user_id`.
 - `BoxWebhookSignaturesSecretArn`: an **existing**, approved secret in `us-east-1`, with `primaryKey` and optional `secondaryKey`.
 - Existing approved `BoxInputFolderId` and `BoxWebhookId`.
-- `LiveProvidersEnabled` defaults to `false`. Keep it disabled until explicit approval and provider checks P01/P02. A template parameter does not constitute approval.
+- `LiveProvidersEnabled` defaults to `false`. Keep it disabled until explicit approval and provider checks P01/P02. `ApprovedLiveFlow` also defaults to false; both gates must be enabled deliberately. A template parameter does not constitute approval.
 
 Secret values are not template parameters and are never output. The template creates no secrets. The role assumes AWS-managed secret encryption; a supplied secret encrypted under a customer-managed KMS key would require an explicitly approved, exact-key decrypt grant before use. The deployment region must be `us-east-1`. The local signing identity needs a separately reviewed execute-api invocation policy for the four IAM routes; this template creates no users, access keys, or credential material.
 
