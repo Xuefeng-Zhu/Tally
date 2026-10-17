@@ -75,5 +75,6 @@ export function useWorkspace() {
     loadFixture: (id: 'fixture-A' | 'fixture-B') => run(id, '/api/demo/analyze', {file_ids: [id]}),
     analyzeInbox: () => run('inbox', '/api/demo/analyze', {}),
     reconcile: () => run('reconcile', '/api/demo/reconcile', {}),
+    refreshWorkspace: () => run('refresh', '/api/state', undefined, 'GET'),
   };
 }

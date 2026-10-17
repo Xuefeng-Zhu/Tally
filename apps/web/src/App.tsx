@@ -1,40 +1,29 @@
-import { useState } from 'react';
-import { emptyState } from '../../../packages/contracts';
+import { useEffect, useRef, useState } from 'react';
+import { DEFAULT_PROFILE, emptyState } from '../../../packages/contracts';
 import { OpportunityCard } from './OpportunityCard';
-import { ProfilePanel } from './ProfilePanel';
-import { RecordPanel } from './RecordPanel';
+import { OverviewPage } from './OverviewPage';
+import { DocumentsPage } from './DocumentsPage';
+import { SettingsPage } from './SettingsPage';
+import { Icon, TallyMark, type IconName } from './Icons';
 import { useWorkspace } from './useWorkspace';
-import { WorkspaceStatus } from './WorkspaceStatus';
-
-function TallyMark() { return <svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M11 9v22M19 9v22M27 9v22M7 26l26-12" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" /></svg>; }
-const extractionLabels = {fixture:'Fixture',live_box_ai:'Live Box AI',not_run:'Not run'};
-const intakeLabels = {fixture:'Fixture simulation',manual:'Manual Box inbox',webhook:'Box webhook'};
-const explanationLabels = {fixture:'Fixture',live_bedrock:'Live Bedrock',deterministic_fallback:'Deterministic fallback',not_run:'Not run'};
-export function App() {
-  const workspace = useWorkspace();
-  const state = workspace.state ?? emptyState();
-  const [recordsHighlighted, setRecordsHighlighted] = useState(false);
-  const fixtureMode = state.execution.intake_mode === 'fixture';
-  function showRecords() {
-    setRecordsHighlighted(true);
-    const panel = document.getElementById('fixture-controls');
-    panel?.scrollIntoView({behavior:'smooth',block:'center'});
-    panel?.focus({preventScroll:true});
-  }
-  return <div className="app-shell">
-    <a className="skip-link" href="#main">Skip to workspace</a>
-    <header className="site-header"><a className="brand" href="/" aria-label="Tally home"><TallyMark /><span>Tally<span className="brand-period">.</span></span></a><span className="brand-description">Evidence, in order.</span><span className="demo-chip"><span aria-hidden="true" /> Synthetic demo</span></header>
-    <main id="main">
-      <div className="page-intro"><div><p className="eyebrow">Your business notebook <span aria-hidden="true">/</span> Tax year 2025</p><h1>Make sense of<br /><em>what comes next.</em></h1></div><div className="intro-aside"><span className="folio-mark" aria-hidden="true">§</span><p>Start with the records.<br />Follow the evidence.<br />Keep the open questions visible.</p></div></div>
-      <aside className="demo-notice" aria-label="Demonstration context"><span className="notice-symbol" aria-hidden="true">✳</span><p>A synthetic business. Historical 2025 records. A working demonstration of how evidence changes the next step.</p><span className="mode-label">{fixtureMode ? 'Local fixture mode' : state.execution.intake_mode === 'webhook' ? 'Box webhook mode' : 'Manual Box inbox'}</span></aside>
-      {workspace.error && <div className="error-banner" role="alert"><strong>That step needs another look.</strong><p>{workspace.error.message}</p>{workspace.error.details?.correlation_id && <span>Reference: {workspace.error.details.correlation_id}</span>}<p>Your saved records will appear when the local server reconnects.</p></div>}
-      {workspace.loading ? <div className="loading-state" role="status"><TallyMark /><p>Opening your notebook…</p></div> : <div className="workspace-grid"><aside className="workspace-sidebar"><ProfilePanel profile={state.profile} busy={workspace.busy} onSave={workspace.saveProfile} /><RecordPanel state={state} intakeMode={state.execution.intake_mode} busy={workspace.busy} onLoad={workspace.loadFixture} onAnalyzeInbox={workspace.analyzeInbox} onReconcile={workspace.reconcile} highlighted={recordsHighlighted} /></aside><div className="workspace-main">
-        <div className="workspace-heading"><div><span className="section-number">03</span><h2>The next step</h2></div><WorkspaceStatus jobs={state.jobs} busy={workspace.busy} /></div>
-        {state.opportunity ? <OpportunityCard state={state} onNeedFixture={showRecords} /> : <section className="empty-notebook" aria-labelledby="empty-title"><div className="paper-stack" aria-hidden="true"><div className="paper-back" /><div className="paper-front"><span>A</span><i /><i /><i /><div className="paper-seal"><TallyMark /></div></div></div><p className="eyebrow">Every good next step has a source.</p><h2 id="empty-title">Start with the records.</h2><p>{fixtureMode ? 'Save your business context, then load a fixture.' : 'Save your business context, then analyze your Box inbox.'}<br />Tally will connect the evidence and keep the<br className="desktop-break" /> remaining questions in view.</p><button className="text-button" onClick={showRecords}>{fixtureMode ? 'Go to the local fixtures' : 'Go to Box inbox controls'} <span aria-hidden="true">↙</span></button><span className="empty-caption">No assessment before evidence.</span></section>}
-        <div className="provenance-strip" aria-label="Execution details"><div><span>Intake</span><strong>{intakeLabels[state.execution.intake_mode]}</strong></div><div><span>Extraction</span><strong>{extractionLabels[state.execution.extraction_mode]}</strong></div><div><span>Explanation</span><strong>{explanationLabels[state.execution.explanation_mode]}</strong></div></div>
-        {state.specification_status === 'interim_reconstructed' && <p className="interim-note"><span aria-hidden="true">◇</span> Interim reconstructed contracts & fixtures. Reconciliation with the original handoff is pending.</p>}
-      </div></div>}
-    </main>
-    <footer className="site-footer"><span>Tally<span className="brand-period">.</span> <span className="footer-tagline">A little more clarity.</span></span><span>Synthetic data · Historical 2025 · Annual requirements unresolved</span></footer>
-  </div>;
+import { assessmentUpdatePending } from './workspacePresentation';
+type Page='overview'|'documents'|'opportunity'|'settings';
+const pages:{id:Page;label:string;icon:IconName}[]=[{id:'overview',label:'Overview',icon:'overview'},{id:'documents',label:'Documents',icon:'documents'},{id:'opportunity',label:'Opportunity',icon:'opportunity'},{id:'settings',label:'Settings',icon:'settings'}];
+const readPage=():Page=>{const id=window.location.hash.slice(1);return pages.some(p=>p.id===id)?id as Page:'overview';};
+export function App(){
+ const workspace=useWorkspace(),state=workspace.state??emptyState();
+ const [page,setPage]=useState<Page>(readPage),[section,setSection]=useState<'business'|'connections'|'samples'>('business');
+ const [detailTab,setDetailTab]=useState<'summary'|'evidence'|'requirements'>('summary');
+ const main=useRef<HTMLElement>(null);const sample=state.execution.intake_mode==='fixture';
+ useEffect(()=>{const update=()=>{const hash=window.location.hash.slice(1);if(pages.some(p=>p.id===hash))setPage(readPage());};window.addEventListener('hashchange',update);return()=>window.removeEventListener('hashchange',update);},[]);
+ function navigate(next:Page){setPage(next);window.history.pushState(null,'',`#${next}`);window.scrollTo({top:0,behavior:'instant'});main.current?.focus({preventScroll:true});}
+ function settings(next:'business'|'connections'|'samples'='business'){setSection(next);navigate('settings');}
+ function opportunity(){setDetailTab('summary');navigate('opportunity');}
+ const name=state.profile?.display_name??DEFAULT_PROFILE.display_name;
+ return <div className="product-shell"><a className="skip-link" href="#workspace-main" onClick={event=>{event.preventDefault();main.current?.focus();}}>Skip to workspace</a><aside className="sidebar"><button className="brand" onClick={()=>navigate('overview')} aria-label="Tally home"><span className="brand-mark"><TallyMark/></span><span>tally<span className="brand-dot">.</span></span></button><div className="business-switcher"><span className="business-avatar">JL</span><div><strong>Juniper Lane Bakery</strong><span>Business workspace</span></div></div><nav aria-label="Main navigation">{pages.map(item=><button key={item.id} data-testid={`nav-${item.id}`} className={`nav-item ${page===item.id?'active':''}`} aria-current={page===item.id?'page':undefined} onClick={()=>item.id==='settings'?settings():item.id==='opportunity'?opportunity():navigate(item.id)}><Icon name={item.icon}/><span>{item.label}</span>{item.id==='opportunity'&&state.opportunity&&<span className="nav-count">1</span>}</button>)}</nav><div className="sidebar-bottom"><div className="workspace-mode"><span className="mode-dot"/><div><strong>{sample?'Sample workspace':'Box document workspace'}</strong><p>{sample?'Explore with sample records':'Your configured document inbox'}</p></div></div><button className="sidebar-utility" data-testid="open-sample-settings" onClick={()=>settings(sample?'samples':'connections')}>{sample?'Manage sample records':'View connections'}<Icon name="arrow" size={15}/></button></div></aside>
+ <div className="main-shell"><header className="topbar"><span className="workspace-name">{name}</span><div className="topbar-right"><span className="topbar-year">Tax year 2025</span><button className="sample-indicator" onClick={()=>settings(sample?'samples':'connections')}><span/>{sample?'Sample data':'Box inbox'}</button></div></header><main id="workspace-main" ref={main} tabIndex={-1} className="workspace-content">
+ {workspace.error&&<div className="error-banner" data-testid="workspace-error" role="alert"><Icon name="clock"/><div><strong>{workspace.error.details?.profile_saved?'Your business details are saved.':'We couldn’t complete that step.'}</strong><p>{workspace.error.message}</p>{workspace.error.details?.correlation_id&&<details><summary>Support reference</summary><code>{workspace.error.details.correlation_id}</code></details>}</div><button className="text-button" disabled={!!workspace.busy} onClick={workspace.refreshWorkspace}>Refresh workspace</button></div>}
+ {!workspace.loading&&assessmentUpdatePending(state)&&<div className="update-notice" role="status"><Icon name="clock" size={16}/><p>Your records are saved. Tally is updating your review.</p></div>}
+ {workspace.loading?<div className="workspace-skeleton" data-testid="workspace-loading" role="status"><span className="sr-only">Loading your workspace</span><div/><div/><div/></div>:!workspace.state?<section className="surface unavailable-state"><h1>Let’s get your workspace back.</h1><p>Your saved information will appear when Tally reconnects.</p><button className="button button-primary" onClick={workspace.refreshWorkspace} disabled={!!workspace.busy}>Refresh workspace</button></section>:page==='overview'?<OverviewPage state={state} onDocuments={()=>navigate('documents')} onSettings={()=>settings()} onOpportunity={opportunity}/>:page==='documents'?<DocumentsPage state={state} busy={workspace.busy} onAnalyzeInbox={workspace.analyzeInbox} onReconcile={workspace.reconcile} onOpenSamples={()=>settings('samples')} onEditProfile={()=>settings()}/>:page==='opportunity'?(state.opportunity?<OpportunityCard key={detailTab} state={state} initialTab={detailTab} onNeedFixture={()=>navigate('documents')}/>:<div className="page-enter"><div className="page-title"><div><h1>Opportunity</h1><p>Follow the evidence to a more informed next step.</p></div></div><section className="surface opportunity-empty"><span className="empty-symbol"><Icon name="opportunity" size={34}/></span><h2>Start with the supporting records.</h2><p>When evidence points to a potential opportunity, you’ll see the next step and open questions here.</p><button className="button button-primary" onClick={()=>state.profile?navigate('documents'):settings()}>{state.profile?'Go to documents':'Add business details'}<Icon name="arrow" size={16}/></button></section></div>):<SettingsPage key={section} state={state} busy={workspace.busy} onSave={workspace.saveProfile} onLoad={workspace.loadFixture} onReconcile={workspace.reconcile} initialSection={section}/>}
+ </main><footer className="product-footer"><span>Clear records. Thoughtful next steps.</span><span>{sample?'Sample data · ':''}2025 review · Annual eligibility not established</span></footer></div></div>;
 }

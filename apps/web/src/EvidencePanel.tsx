@@ -28,7 +28,7 @@ export function resolveEvidenceSource(documents: Document[], fact: Fact): Docume
 export function EvidencePanel({state}: {state: State}) {
   const ids = new Set(state.opportunity?.fact_ids ?? []);
   const facts = state.facts.filter(fact => ids.has(fact.fact_id) || fact.verification_state === 'needs_review');
-  return <details className="evidence-panel"><summary><span><span className="tiny-symbol" aria-hidden="true">≡</span> Inspect the evidence <span className="count-label">{facts.length} facts</span></span><span className="expand-symbol" aria-hidden="true">+</span></summary>
+  return <section className="evidence-panel"><div className="section-heading"><h2>Source evidence</h2><span className="muted">{facts.length} recorded details</span></div>
     <div className="evidence-body"><p className="field-note">Each fact keeps its source, period, and verification state. Partial records do not establish annual requirements.</p>
       {facts.length === 0 ? <p>No active facts are attached to this assessment.</p> : <div className="fact-list">{facts.map(fact => {
         const source = resolveEvidenceSource(state.documents, fact);
@@ -36,12 +36,12 @@ export function EvidencePanel({state}: {state: State}) {
         const page = locator.kind === 'verified_page' && locator.page !== null ? `Verified page ${locator.page}` : locator.kind === 'file_only' ? 'File-level reference' : 'Page reference unavailable';
         return <article className="fact-row" key={fact.fact_id}>
           <div className="fact-title"><h3>{factLabels[fact.fact_type] ?? humanize(fact.fact_type)}</h3><strong>{factValue(fact)}</strong></div>
-          <div className="fact-meta"><span className={fact.verification_state === 'needs_review' ? 'review-state' : ''}>{humanize(fact.verification_state)}</span><span>{humanize(fact.relevant_period.scope)}{fact.relevant_period.start ? ` · ${fact.relevant_period.start}` : ''}{fact.relevant_period.end ? ` to ${fact.relevant_period.end}` : ''}</span></div>
+          <div className="fact-meta"><span className={fact.verification_state === 'needs_review' ? 'review-state' : ''}>{fact.verification_state==='source_supported'?'Matches the document':fact.verification_state==='derived'?'Calculated from these records':fact.verification_state==='needs_review'?'Needs attention':humanize(fact.verification_state)}</span><span>{fact.relevant_period.scope==='partial_period'?'Part of the year':fact.relevant_period.scope==='point_in_time'?'Recorded date':humanize(fact.relevant_period.scope)}{fact.relevant_period.start ? ` · ${fact.relevant_period.start}` : ''}{fact.relevant_period.end ? ` to ${fact.relevant_period.end}` : ''}</span></div>
           {fact.source.excerpt && <blockquote>“{fact.source.excerpt}”</blockquote>}
           {source ? <a className="source-link" data-testid="evidence-link" href={source.source_url} target="_blank" rel="noreferrer">{source.name} <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span></a> : <span className="field-note">{fact.source.kind === 'owner_provided' ? 'Synthetic owner-provided context' : fact.source.kind === 'deterministic_derivation' ? 'Derived from referenced input facts' : 'Source link unavailable'}</span>}
           {(fact.source.kind === 'box_document' || fact.source.kind === 'fixture_document') && <span className="locator">{page}{fact.source.excerpt_validation === 'matched' ? ' · excerpt matched' : fact.source.excerpt_validation === 'failed' ? ' · excerpt needs review' : ''}</span>}
         </article>;
       })}</div>}
     </div>
-  </details>;
+  </section>;
 }

@@ -13,7 +13,7 @@ npm run dev
 
 Open http://127.0.0.1:5173. The local API listens on http://127.0.0.1:4318. Both processes bind to the local machine. Fixture mode requires no Box or AWS credentials and makes no provider calls. Local state is stored in `.data/state.json`; `TALLY_DATA_PATH` can select a separate state file.
 
-Save the business context, load fixture A, inspect the evidence, then load fixture B. The same opportunity card updates with coverage and a stated 80% employer premium share. All eight annual requirements remain unknown. Refresh the page to check that local state persists. See [the demo guide](docs/demo.md).
+Open Settings → Business profile and save the context. In Settings → Sample workspace, add the payment/payroll sample, inspect the Overview, Documents and Opportunity pages, then add the coverage statement sample. The same opportunity card updates with coverage and a stated 80% employer premium share. All eight annual requirements remain unknown. Refresh the page to check that local state persists. See [the demo guide](docs/demo.md).
 
 ## Verify
 

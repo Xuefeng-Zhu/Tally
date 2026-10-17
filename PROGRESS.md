@@ -10,9 +10,9 @@ Google Doc sections 18–19 and the supplied Pasted text.txt were read. The orig
 - P01 Box AI: not run; explicit approval and account/folder access pending.
 - P02 Strands/Bedrock: not run; explicit approval and identity/quota verification pending.
 - SAM deployment: not run; approval pending.
-- GitHub push/publication/submission: not authorized.
+- GitHub: authorized private personal repository and reviewed history pushed through `9d84ed82a1b64ff57899df4323d3192fdb102776`. Product redesign remains local for review. Publication/submission are not authorized.
 
-No provider calls, credentials, deployment, pushes or external messaging performed.
+No provider calls, credential setup, deployment, publication, submission or external messaging performed. The separately authorized private code push is recorded above.
 
 ## Verified milestones
 - Repository initialized at the requested existing git parent.
@@ -39,3 +39,9 @@ Bounded PDF parsing/download/hash checks, official zero-indexed Box references, 
 
 ## Luna application-model selection
 The user subsequently selected GPT-6 Luna, `us.openai.gpt-6-luna`, US cross-Region inference from `us-east-1`. Installed Strands 1.21.0 supports non-streaming Converse and native strict JSON via its existing pass-through options. Deterministic evidence and explanation validation remain authoritative. Reasoning controls are left unspecified because the reviewed AWS Luna card does not establish the exact Converse field; default medium and the unchanged350-token/20-second bounds require approved P02 observation. No paid call, entitlement acceptance, credential setup or deployed IAM change occurred. The coding executor model was not changed. The user also authorized creating a private personal Tally repository and pushing reviewed code/history after a secret scan.
+
+## Product UX redesign
+
+The user approved the warm ivory/forest-green product direction. Replaced the single demo page with a focused overview, real document inbox/detail states, evidence-oriented opportunity tabs, and progressive business settings. Sample controls moved into a secondary settings section. Preserved the single bakery/card/contracts/backend and existing data. Added draft navigation preservation, accurate partial-save messaging, stale-assessment suppression, guarded current-source detail partitioning, and readable mobile navigation. Redesign is a separate local commit for review; it must not be pushed yet.
+
+126/126 offline tests, TypeScript, production build and isolated real-browser checks pass for the redesign. Ten visually reviewed desktop/mobile images and the actual 84.24-second 1440×1000 product video are uploaded to Library; exact IDs are in docs/redesign-review.md. All eight annual unknowns and the same-card 80% update remain visible. No live calls or redesign push occurred.

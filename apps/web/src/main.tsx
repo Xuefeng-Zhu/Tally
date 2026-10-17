@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { ProfileDraftProvider } from './ProfilePanel';
 import './styles.css';
 
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
+createRoot(document.getElementById('root')!).render(<React.StrictMode><ProfileDraftProvider><App /></ProfileDraftProvider></React.StrictMode>);
