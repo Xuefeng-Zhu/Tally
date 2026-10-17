@@ -1,54 +1,126 @@
 # Tally
 
-Tally turns source evidence into a traceable next step for a small business. This local historical demo follows Juniper Lane Bakery LLC's potential 2025 federal small-business health-care tax credit opportunity. It distinguishes partial evidence from annual requirements and never supplies an eligibility decision or credit estimate from these records.
+Tally helps a small-business owner turn scattered records into an evidence-backed next step. The demonstration follows **Juniper Lane Bakery LLC** and one potential **2025 federal small-business health insurance credit** opportunity. It keeps source evidence, unresolved questions and the next action together.
 
-## Run locally
+**Current delivery:** a runnable, verified local product with synthetic records. Live Box → AWS → page E2E has **not run**. Both available demo videos show fixture execution. No eligibility decision or credit estimate is produced from these partial records.
 
-The local dependency pins Node 22.23.3 for verification (the package supports 22.13 or newer, below 25). Run:
+## Try the product
+
+Prerequisite: Node.js **22.13 or newer, below 25**, with npm. The project pins Node **22.23.3** as a local development dependency; verification uses that runtime.
 
 ```sh
-npm install
-npm run dev
+npm ci
+TALLY_EXECUTION_MODE=fixture LIVE_PROVIDERS_ENABLED=false TALLY_APPROVED_LIVE_FLOW=false npm run dev
 ```
 
-Open http://127.0.0.1:5173. The local API listens on http://127.0.0.1:4318. Both processes bind to the local machine. Fixture mode requires no Box or AWS credentials and makes no provider calls. Local state is stored in `.data/state.json`; `TALLY_DATA_PATH` can select a separate state file.
+Open **http://127.0.0.1:5173**. The API listens on **http://127.0.0.1:4318**. Both bind to loopback. Fixture mode needs no credentials and makes no Box, Bedrock or other provider calls.
 
-Open Settings → Business profile and save the context. In Settings → Sample workspace, add the payment/payroll sample, inspect the Overview, Documents and Opportunity pages, then add the coverage statement sample. The same opportunity card updates with coverage and a stated 80% employer premium share. All eight annual requirements remain unknown. Refresh the page to check that local state persists. See [the demo guide](docs/demo.md).
+1. In **Settings → Business profile**, save the sample business context.
+2. In **Settings → Sample workspace**, add **Payment & payroll sample**.
+3. Read the priority in **Overview**, inspect **Documents**, and open the opportunity's **Evidence** tab.
+4. Add **Coverage statement sample** from Settings. The **same opportunity** updates with coverage and a stated **80% monthly employer premium share**.
+5. Open **Annual review**. All **eight requirements remain Unknown**; payment-to-coverage matching remains unresolved and no estimate appears.
+6. Refresh the page. The local state persists.
 
-## Verify
+See [the product walkthrough](docs/demo.md) and [redesign review artifacts](docs/redesign-review.md). Sample controls are intentionally confined to Settings.
+
+## State and configuration
+
+The default store is `.data/state.json`. Preserve it when checking another flow. Set `TALLY_DATA_PATH` to a fresh path for an independent session; do not delete working data to reset a test.
+
+The server does **not** automatically load a `.env` file. Pass settings through the process environment. [.env.example](.env.example) documents the available non-secret settings and the separate live gates.
+
+| Setting | Fixture default | Purpose |
+| --- | --- | --- |
+| `TALLY_EXECUTION_MODE` | `fixture` | Local fixture backend; `aws` selects the approved signed upstream |
+| `TALLY_DATA_PATH` | `.data/state.json` | Local JSON state only |
+| `TALLY_LOCAL_PORT` | `4318` | Loopback API |
+| `TALLY_WEB_PORT` | `5173` | Vite port, fails if occupied |
+| `TALLY_WEB_ORIGIN` | `http://127.0.0.1:5173` | Allowed local web origin |
+| `TALLY_API_PROXY_TARGET` | `http://127.0.0.1:4318` | Vite's loopback API target |
+
+Credentials never belong in frontend code, committed files, screenshots or chat. The AWS path uses a server-side IAM signer and approved Secrets Manager references.
+
+## Verify locally
 
 ```sh
 npm run typecheck
 npm test
 npm run build
+npm run check:infra
 ```
 
-With both dev servers running against a **fresh, isolated** state file:
+The redesign baseline passed 126 offline tests and real Chromium fixture checks. Current readiness verification includes preparation failure/recovery, extraction-lease concurrency, infrastructure gates and the offline evidence validator; results are recorded in the [verification matrix](docs/verification-matrix.md). TypeScript and the production build passed. Mocked tests do not certify provider access.
+
+The unit suite blocks external networking. The browser journey also blocks external requests and refuses a nonempty or non-fixture starting state. To run it beside the working app, use two terminals:
 
 ```sh
-TALLY_DATA_PATH=/tmp/tally-browser-state.json npm run dev
-# In another terminal:
-npm run test:browser
+# Terminal 1: preserve the default working state and ports.
+TALLY_QA_DIR=$(mktemp -d /tmp/tally-qa.XXXXXX)
+TALLY_EXECUTION_MODE=fixture LIVE_PROVIDERS_ENABLED=false TALLY_APPROVED_LIVE_FLOW=false \
+TALLY_DATA_PATH="$TALLY_QA_DIR/state.json" TALLY_LOCAL_PORT=4324 \
+TALLY_WEB_PORT=5177 TALLY_WEB_ORIGIN=http://127.0.0.1:5177 \
+TALLY_API_PROXY_TARGET=http://127.0.0.1:4324 npm run dev
 ```
 
-The browser check uses Playwright Chromium, walks the A-to-B flow, checks evidence links, refresh persistence, annual unknowns, and desktop/mobile layout. If Chromium is missing, install it with `npx playwright install chromium`. Screenshots are saved under `.artifacts/browser/` by default. Do not use your working demo state for this check; it deliberately changes its selected local state.
+```sh
+# Terminal 2
+TALLY_WEB_URL=http://127.0.0.1:5177 TALLY_API_URL=http://127.0.0.1:4324 \
+TALLY_ARTIFACTS_DIR=.artifacts/browser-check npm run test:browser
+```
 
-## Specification and fixture provenance
+If Chromium is absent, install the official Playwright browser with `npx playwright install chromium`. Stop the isolated server with Ctrl-C after the check. Screenshots and manifests are ignored under `.artifacts/`; production build output is `dist/web/`.
 
-The build began from the supplied prompt and Google Doc sections 18-19 while the original `tally-build-handoff.zip` was being retrieved. Contracts and fixtures labeled `interim_reconstructed` are reconstructed from that written specification, not read from the original bundle. The clearly marked synthetic PDFs live in `fixtures/interim/`. The shared conversation download did not produce a file, and the private conversation did not expose an obtainable current bundle. No original ZIP, exact contracts, or original PDFs were read. Exact handoff parity remains unverified until the original bundle is obtained and reconciled.
+## How it works
 
-Fixture A has a June 5, 2025 insurance ledger payment of $1,200 and partial June 1-15 payroll of 200 hours / $4,000 across four workers. Fixture B states June 1-30 coverage with $1,500 total premium, $1,200 employer contribution, and $300 employee contribution. Matching values suggest only a candidate association; payment-to-coverage matching remains unknown. A B-first upload supports coverage and premium split; payment and payroll remain unknown. Neither order resolves annual eligibility.
+```mermaid
+flowchart LR
+  UI["React workspace"] --> API["Validated API"]
+  API --> I["Durable INGEST"]
+  I --> L["Source-bound fact ledger"]
+  L --> R["Deterministic evaluation"]
+  R --> E["Guarded explanation"]
+  E --> C["One revisioned opportunity"]
+  C --> UI
+```
 
-## Implementation and gates
+Fixture mode uses a local JSON store and local jobs. The implemented AWS path uses an IAM-authenticated API, signature-checked Box webhook, SQS, DynamoDB, Box structured extraction and Strands/Bedrock Luna explanations. These adapters have mocked/offline coverage; the deployed path remains unverified.
 
-The local API tests and real Chromium A-to-B walkthrough have passed on this Mac. Desktop and mobile screenshots were visually inspected without clipping or horizontal overflow. These checks apply to the interim fixture implementation.
+The deterministic evaluator owns statuses, facts, calculations, annual unknowns and next actions. AI can explain a valid result; it cannot decide eligibility, invent evidence or supply an unsupported amount. Read [architecture and data flow](docs/architecture.md).
 
-See [architecture](docs/architecture.md) for the ledger, version guards, idempotency, and provider boundaries. Live Box AI, live Strands/Bedrock, persistent credentials and cloud deployment remain **unverified and pending specific approval**. The user authorized a private personal GitHub repository and a code/history push after secret review; this does not authorize cloud calls or public publication/submission. Local fixture checks do not count as live provider validation. The user selected GPT-6 Luna (`us.openai.gpt-6-luna`, US cross-Region inference from `us-east-1`) as the application model; P02 remains unrun and no quality improvement is claimed. Smoke scripts are separate gates; do not run them without explicit approval.
+## Real integration status
 
-The AWS handler boundaries are deliberately gated. Bounded source PDF download and reference normalization, lazy webhook secrets, durable SQS ingress, and separate worker evaluation are implemented with mocked tests. The live flow is disabled until the provider gates and whole-flow approval are explicit; source compilation does not demonstrate live integration. The original supplied model choice was superseded by the user-selected Luna configuration recorded in `packages/contracts/model.ts`.
+| Stage | Status |
+| --- | --- |
+| Local product, fixture A→B, source PDF links and persistence | Verified |
+| AWS browser-backed CLI login and STS identity | Existing temporary root session approved for bounded Tally preparation; exact runtime grants and secret setup pending |
+| Luna inference-profile metadata in `us-east-1` | ACTIVE; invocation and entitlement remain unverified |
+| Box browser session | Observed; dedicated Tally app/folder and extraction entitlement unverified |
+| Linux ARM64 SAM build | Not run: SAM CLI absent and Docker daemon unavailable |
+| Box upload/webhook/extraction → DynamoDB → Luna → page | **NOT RUN** |
+| Final live E2E recording | **NOT RUN**; follows integration, E2E, fixes and retest |
 
-## Production adapter implementation
+No Tally/Millie-named CloudFormation stacks, Lambda functions or DynamoDB tables were found in the inspected `us-east-1` listing. That is a scoped metadata observation, not a claim about every account resource or region. No deployment, paid provider call, IAM expansion or Box authorization was performed.
 
-The server-side production path now includes bounded two-page/1MiB PDF download and parsing in an isolated worker, actual byte hashes, version checks before/after extraction, documented Box reference validation against source text, exact integer cents/date handling, lazy approved-secret loading, durable webhook intake and a separate leased INGEST/EVALUATE worker. These are verified with mock provider and SDK transports only. `npm test` blocks external networking and allows local loopback HTTP.
+[Deployment runbook](docs/deployment.md), [costs and approval boundaries](docs/costs-and-approvals.md), and [live E2E checklist](docs/live-e2e.md) describe the remaining steps. The live flags default false and are configuration guards, not human authorization. A spend limit, exact identities, resource targets and Box entitlement must be established before execution.
 
-Both `LIVE_PROVIDERS_ENABLED` and `TALLY_APPROVED_LIVE_FLOW` must be explicitly enabled after approval and successful provider gates. Neither flag constitutes human approval by itself. Unavailable or invalid secrets, source references, currencies, metadata, signatures or queue handoffs fail closed. See [provider details](docs/providers.md), [secret wiring](docs/secrets.md), and [review images](docs/review-images.md).
+## Evidence and fixture provenance
+
+The original `tally-build-handoff.zip`, exact contracts and original PDFs were **not obtained or read**. Current contracts, rules/goldens and `fixtures/interim/` were reconstructed from the supplied written prompt and Google Doc sections 18–19, and are explicitly labeled synthetic/interim. Original parity remains pending.
+
+Sample A records a $1,200 insurance payment and partial June payroll; sample B states $1,500 total premium, $1,200 employer and $300 employee contributions. Equal amounts do not prove a payment match. Partial payroll does not resolve full-year requirements.
+
+The existing synthetic PDFs lack an explicit USD currency token. Live normalization may therefore retain monetary values as candidates/unknown rather than promote them. Fixture goldens are separate labeled inputs; the PDFs have not been silently rewritten. See [known limits and verification](docs/verification-matrix.md).
+
+## Documentation
+
+- [Architecture and consistency model](docs/architecture.md)
+- [Provider gates and source validation](docs/providers.md)
+- [Existing secret formats and handling](docs/secrets.md)
+- [Packaging and platform limits](docs/packaging.md)
+- [Secure deployment and cleanup runbook](docs/deployment.md)
+- [Live E2E plan](docs/live-e2e.md) and [verification matrix](docs/verification-matrix.md)
+- [Cost assumptions and exact approval boundaries](docs/costs-and-approvals.md)
+- [Three-minute English demo script](docs/demo-script.md) and [submission checklist](docs/submission-checklist.md)
+
+The repository is private. Judge access, submission form and shareable video URL remain separate review items; pushing source does not publish the product or submit it.
