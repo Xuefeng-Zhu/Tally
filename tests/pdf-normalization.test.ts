@@ -266,6 +266,23 @@ test('money requires source-supported USD and exact safe cents without rounding 
   assert.equal(fact(cents, 'recorded_payment_amount').value, 29);
   assert.equal(fact(cents, 'recorded_payment_amount').verification_state, 'source_supported');
 });
+test('a dollar-only source cannot establish USD or money even when the provider returns USD', () => {
+  const excerpt = 'Recorded insurance payment: $1,200.00.';
+  const pdf = { ...unitPdf, pages: [`Juniper Lane Bakery LLC. Seattle, WA. ${excerpt}`], pageCount: 1 };
+  for (const [currency, currencyExcerpt] of [['$', '$1,200.00'], ['USD', '$1,200.00'], ['USD', 'Currency: USD.']] as const) {
+    const source = normalizeBoxSource({
+      answer: { currency, recorded_payment_amount: 1200 },
+      reference: { currency: ref(1, currencyExcerpt), recorded_payment_amount: ref(1, excerpt) },
+      confidence_score: { currency: { number: 1, rating: 'high' }, recorded_payment_amount: 1 },
+    }, unitMetadata, pdf, { now });
+    const amount = fact(source, 'recorded_payment_amount');
+    assert.equal(amount.source.excerpt_validation, 'matched');
+    assert.equal(amount.value, null);
+    assert.equal(amount.value_state, 'unknown');
+    assert.equal(amount.verification_state, 'needs_review');
+    if (currency === 'USD') assert.notEqual(fact(source, 'currency').verification_state, 'source_supported');
+  }
+});
 test('dates must be real strict ISO calendar dates and supported by the cited source', () => {
   for (const value of ['2025-02-30', '2025-13-01', '2025-6-5', '06/05/2025', '2025-06-05T00:00:00Z', '2024-06-05']) {
     const source = answerSource({ ...coreAnswer, payment_date: value }, coreReferences);

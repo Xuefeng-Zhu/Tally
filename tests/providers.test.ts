@@ -56,6 +56,20 @@ test('Box issues one three-field extraction without items.content between stable
   assert.equal(request.include_reference,true);assert.equal(request.include_confidence_score,true);
   assert.equal(result.metadata.file_version.id,'1');
 });
+test('Box default request asks for a literal currency code and forbids symbol or location inference',async()=>{
+  const mock=mockBox([{answer:{}}]);
+  await mock.adapter.extractFields('100');
+  assert.equal(mock.requests.length,1);
+  const request=mock.requests[0]!.body as ReturnType<typeof buildBoxExtractRequest>;
+  assert.equal(request.fields.length,18);
+  const currency=request.fields.find(field=>field.key==='currency');
+  assert.ok(currency);assert.equal(currency.type,'string');
+  assert.match(currency.prompt,/literal uppercase three-letter ISO 4217 code is explicitly printed in the source/);
+  assert.match(currency.prompt,/exact code, or empty when absent/);
+  assert.match(currency.prompt,/Do not convert symbols such as \$ or currency names into a code/);
+  assert.match(currency.prompt,/or infer currency from location, business, or amounts/);
+  assert.equal(request.include_reference,true);assert.equal(request.include_confidence_score,true);
+});
 test('Box rejects version/folder changes and never retries extraction',async()=>{
   const changed=mockBox([metadata,{answer:{}},{...metadata,file_version:{id:'2'}}]);
   await assert.rejects(changed.adapter.extractChecked('100'),/CHANGED_DURING/);assert.equal(changed.requests.length,3);
