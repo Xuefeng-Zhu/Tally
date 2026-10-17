@@ -4,7 +4,7 @@ Tally helps a small-business owner turn scattered records into an evidence-backe
 
 The **Rule library** contains ten distinct 2025 federal opportunities: five credits and five deductions, with official IRS sources, claimant scope and missing evidence. Nine have offline profile screening only; the health credit retains the tested two-document fixture flow. All remain professionally unreviewed, live E2E is unverified, and screening does not activate a claim or calculate savings. See the [versioned library](rules/2025/opportunity-library.json) and [deterministic screening](packages/rules/library.ts).
 
-**Current delivery:** a runnable local product with synthetic records and a verified offline fixture flow. The user-selected explanation target is **OpenRouter `openai/gpt-6-luna`**; its isolated A/B run passed both accepted explanations and all ten browser checks. Verification of the main checkout’s integrated runtime and any new recording remain pending. One actual Box upload/extraction and a deployed disabled AWS stack provide separate partial evidence. Full Box → AWS → explanation → page E2E is **not proven**. No eligibility decision or credit estimate is produced from these partial records.
+**Current delivery:** a runnable local product with synthetic records and a verified offline fixture flow. The user-selected explanation target is **OpenRouter `openai/gpt-6-luna`**; its isolated A/B run passed both accepted explanations and all ten browser checks. The integrated main source `bdb578f9` passed 288/288 offline tests plus TypeScript/build/infra. A new full presentation recording remains pending; no main live E2E pass is claimed. The historical interim-B and new explicit-USD-A Box tests, plus a deployed disabled AWS stack, provide separate partial evidence. Full Box → AWS → explanation → page E2E is **not proven**. No eligibility decision or credit estimate is produced from these partial records.
 
 ## Try the product
 
@@ -54,7 +54,7 @@ npm run build
 npm run check:infra
 ```
 
-The redesign baseline passed 126 offline tests and real Chromium fixture checks. Current readiness verification includes preparation failure/recovery, extraction-lease concurrency, infrastructure gates and the offline evidence validator; results are recorded in the [verification matrix](docs/verification-matrix.md). TypeScript and the production build passed. Mocked tests do not certify provider access.
+Main source `bdb578f9489cdcfa1e055bf4c103b93d1d2c348c` passed **288/288 offline tests**, TypeScript, production build and infrastructure checks. This is integrated local/offline verification, not a main live E2E pass. Historical redesign/fixture receipts remain in the [verification matrix](docs/verification-matrix.md). Offline checks do not certify accepted Box references or cloud application processing.
 
 The unit suite blocks external networking. The browser journey also blocks external requests and refuses a nonempty or non-fixture starting state. To run it beside the working app, use two terminals:
 
@@ -89,7 +89,7 @@ flowchart LR
   C --> UI
 ```
 
-Fixture mode uses a local JSON store and local jobs. The implemented AWS path uses an IAM-authenticated API, signature-checked Box webhook, SQS, DynamoDB and Box structured extraction. Its reviewed stack is deployed with both live gates false; full application data flow remains unverified. The selected new explanation path is server-side OpenRouter `openai/gpt-6-luna`, with isolated fixture-backed A/B acceptance verified and main-checkout integration checks pending. Earlier Strands/Bedrock probes are historical provider evidence, not the selected demo path.
+Fixture mode uses a local JSON store and local jobs. The implemented AWS path uses an IAM-authenticated API, signature-checked Box webhook, SQS, DynamoDB and Box structured extraction. Its reviewed stack is deployed with both live gates false; full application data flow remains unverified. The selected new explanation path is server-side OpenRouter `openai/gpt-6-luna`, with isolated fixture-backed A/B acceptance verified and main source `bdb578f9` passed 288/288 offline tests plus TypeScript/build/infra; no main live E2E pass. Earlier Strands/Bedrock probes are historical provider evidence, not the selected demo path.
 
 The deterministic evaluator owns statuses, facts, calculations, annual unknowns and next actions. AI can explain a valid result; it cannot decide eligibility, invent evidence or supply an unsupported amount. Read [architecture and data flow](docs/architecture.md).
 
@@ -98,10 +98,11 @@ The deterministic evaluator owns statuses, facts, calculations, annual unknowns 
 | Area | Observed result | Limit |
 | --- | --- | --- |
 | Local fixture product | Profile → A → same-card B, 80% monthly share, source links, eight annual Unknowns, refresh/restart and recovery verified | Synthetic fixture extraction; no annual eligibility or estimate |
-| Actual Box test | One upload HTTP201 and one 18-field extraction HTTP200; six observed values matched the synthetic source | Zero accepted citations in the saved projection; `$` does not prove USD; full source-supported normalization is unverified |
+| Historical interim-B Box test | One upload HTTP201 and one 18-field extraction HTTP200; six observed values matched | Zero accepted citations; `$` does not prove USD. Distinct from the later USD-A test |
+| Ended explicit-USD-A Box test | One upload HTTP201; one completed extraction response; file/version/hash binding passed | Exact extraction HTTP status/request ID not retained. All 8 references rejected `reference_unexpected_keys`; 8 confidence objects→null; 0 accepted facts/citations. No Luna/B/retry |
 | AWS | Reviewed disabled stack CREATE_COMPLETE with 17 resources; Lambda/SQS/DynamoDB/API infrastructure and separate private S3 artifacts exist | Both live gates false; infrastructure and successful ARM64 packaging probes do not prove application E2E |
-| Selected explanations | Isolated OpenRouter `openai/gpt-6-luna` A/B: **2/2 accepted**, HTTP200/stop, observed provider OpenAI; all ten browser checks passed at source `5bb11db` | Fixture intake/extraction plus real explanations; main-checkout integration checks pending. Final pair USD 0.0007823; cumulative eight-call provider ledger USD 0.0029223 |
-| Demo recording | Verified baseline `.artifacts/redesign-demo/tally-redesign-demo.mp4`, **84.24s** | Baseline is fixture-only. The isolated real-explanation verification created no recording; no new live video is claimed |
+| Selected explanations | Isolated OpenRouter `openai/gpt-6-luna` A/B: **2/2 accepted**, HTTP200/stop, observed provider OpenAI; all ten browser checks passed at source `5bb11db` | Fixture intake/extraction plus real explanations; main source `bdb578f9` passed 288/288 offline tests plus TypeScript/build/infra; no main live E2E pass. Final pair USD 0.0007823; cumulative eight-call provider ledger USD 0.0029223 |
+| Recording | Verified **84.24s** fixture baseline `.artifacts/redesign-demo/tally-redesign-demo.mp4`; a separate **31.8s** actual A-attempt clip is private | Baseline unchanged. A-only clip is not a full E2E demo; a 90–120s presentation recording is being prepared separately, not yet claimed complete |
 | Full Box/AWS application journey | **NOT PROVEN** | No claim of genuine webhook → worker → accepted facts → current model explanation → UI success |
 
 The AWS deployment has no newly deployed OpenRouter credential or OpenRouter-specific runtime wiring. Do not enable cloud gates to try a local demo. The [organizer page](https://luma.com/bqo9xii4) asks projects to use Box and AWS; no Bedrock-only requirement was found in the reviewed rules. These facts do **not** certify event compliance or judge acceptance.
@@ -110,7 +111,7 @@ The AWS deployment has no newly deployed OpenRouter credential or OpenRouter-spe
 
 ## Optional OpenRouter demonstration
 
-The selected exact target is `openai/gpt-6-luna`, selected by `TALLY_EXPLANATION_ADAPTER=openrouter`; `TALLY_OPENROUTER_ENABLED=false` is the offline default. The integrated command below is under final runtime verification. It opts into metered explanations for fixture intake only and does not enable deployed AWS gates.
+The selected exact target is `openai/gpt-6-luna`, selected by `TALLY_EXPLANATION_ADAPTER=openrouter`; `TALLY_OPENROUTER_ENABLED=false` is the offline default. The integrated local wiring passed the 288-test offline suite at source `bdb578f9`; this is not a new main provider-enabled A/B receipt. It opts into metered explanations for fixture intake only and does not enable deployed AWS gates.
 
 Set `OPENROUTER_PRIOR_SPEND_USD` in the server environment to the verified cumulative prior spend before starting; do not reset it to zero to reuse a budget. With the already approved credential file in place:
 
@@ -134,7 +135,7 @@ The original `tally-build-handoff.zip`, exact contracts and original PDFs were *
 
 Sample A records a $1,200 insurance payment and partial June payroll; sample B states $1,500 total premium, $1,200 employer and $300 employee contributions. Equal amounts do not prove a payment match. Partial payroll does not resolve full-year requirements.
 
-The existing synthetic PDFs lack an explicit USD currency token. Live normalization may therefore retain monetary values as candidates/unknown rather than promote them. Fixture goldens are separate labeled inputs; the PDFs have not been silently rewritten. See [known limits and verification](docs/verification-matrix.md).
+The historical `fixtures/interim/` PDFs lack explicit USD and remain unchanged. The separate [fixtures/live-usd provenance addition](fixtures/live-usd/README.md) contains approved reconstructed synthetic USD records with immutable hashes; these are not original handoff documents or an automatic runtime replacement. The actual USD-A test still accepted no citations/facts; explicit currency alone did not solve reference-shape rejection. Fixture goldens remain separate labeled inputs. See [known limits and verification](docs/verification-matrix.md).
 
 ## Documentation
 

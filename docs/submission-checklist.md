@@ -18,21 +18,22 @@ The current delivery target is a code freeze at **19:20 UTC** and reviewed packa
 | Component | Evidence available | What must stay disclosed |
 | --- | --- | --- |
 | Product | Verified local profile/A/B journey, same opportunity, 80% monthly share, eight annual Unknowns, PDF links, duplicate/restart recovery | Reconstructed synthetic fixtures; no eligibility or annual credit estimate |
-| Box | One real upload 201 and extraction 200; six observed source values matched | Zero accepted citations in saved capture; `$` is not proof of USD; complete source-supported normalization/E2E unproven |
+| Historical interim-B Box test | One upload 201/extraction 200; six observed values matched | Zero accepted citations; dollar-only text does not prove USD |
+| Ended USD-A Box test | One upload 201 and one completed extraction response; source binding passed | Extraction HTTP status/request ID not retained; all 8 references rejected, 8 confidence objects→null, 0 accepted facts/citations. No Luna/B/retry |
 | AWS | Reviewed disabled stack and private artifact storage deployed; both ARM64 Lambda packaging probes passed | Both live gates false; deployed resources are not proof of webhook/SQS/DynamoDB application flow |
-| Explanation | Isolated source `5bb11db`: exact OpenRouter `openai/gpt-6-luna`/OpenAI, **2/2 accepted**, HTTP200/stop, ten browser checks passed | Fixture extraction plus real explanation; main-checkout integration checks pending. Final pair USD 0.0007823; eight-call ledger USD 0.0029223 |
-| Recording | Verified 84.24s fixture baseline `.artifacts/redesign-demo/tally-redesign-demo.mp4` plus earlier fixture recording | Isolated real-explanation verification created no recording; do not relabel baseline as full live E2E |
+| Explanation | Isolated source `5bb11db`: exact OpenRouter `openai/gpt-6-luna`/OpenAI, **2/2 accepted**, HTTP200/stop, ten browser checks passed | Fixture extraction plus real explanation; main source `bdb578f9` passed 288/288 offline tests plus TypeScript/build/infra; no main live E2E pass. Final pair USD 0.0007823; eight-call ledger USD 0.0029223 |
+| Recording | Verified 84.24s fixture baseline `.artifacts/redesign-demo/tally-redesign-demo.mp4`; private 31.8s actual A-only clip | Baseline unchanged; neither proves full E2E. Separate90–120s presentation recording is being prepared |
 
 The event asks for Box and AWS. Describe the actual demonstrated role and limits of each; a local OpenRouter explanation does not retroactively prove AWS processing or accepted Box citations. Do not certify event compliance from these partial observations.
 
 ## Runnable delivery package
 
 - [ ] Run the default offline command from [README](../README.md) in fresh isolated state; preserve the owner's `.data` and active ports.
-- [ ] Finalize and verify the selected local OpenRouter command before presenting it as runnable.
+- [x] Main source `bdb578f9` passed 288/288 offline tests, TypeScript, build and infrastructure checks; selected local wiring is integrated. No main live E2E pass is claimed.
 - [ ] Keep provider keys server-side via the approved normal environment loader; no key in frontend, command arguments, screenshots, source or video.
 - [ ] Verify truthful `live_openrouter`/fallback UI labeling and current receipt before claiming a real accepted explanation.
 - [ ] Record fixture extraction separately from any actual accepted OpenRouter explanation. Do not describe that hybrid as a full live Box/AWS pipeline.
-- [ ] Run the appropriate offline checks/typecheck/build after integration; record exact results and commit. Existing fixture browser tests forbid external calls and do not prove a paid-provider journey.
+- [x] Integrated offline checks are recorded for source `bdb578f9`. Existing fixture browser tests forbid external calls and do not prove the Box/AWS paid-provider journey.
 - [ ] Review the tracked package/history for credentials, private endpoints and unintended account data.
 - [ ] Confirm the final recorded UI uses the reviewed commit and no unexplained source changes.
 
@@ -54,7 +55,7 @@ Use the [90-second capture plan and three-minute talk](demo-script.md). Existing
 - [ ] Recheck actual repository visibility and authorized push scope; do not assume it is private or that public publication was authorized.
 - [ ] Record the reviewed source commit and verified remote SHA in the completion report.
 - [ ] Verify judges can access the approved source/video URLs through the intended method.
-- [ ] Resolve the original handoff or disclose that the exact contracts/PDFs remain unreconciled.
+- [x] Original handoff remains unreconciled and is disclosed; the separate `fixtures/live-usd/` addition records approved reconstructed synthetic USD assets without replacing interim originals.
 - [ ] Reconcile provider/infrastructure spend against the USD 10 total ceiling; no Box purchase is authorized.
 - [ ] For separately requested material updates, retain the project description, approved source/video links and actual integration limitations; do not re-open or resubmit the form implicitly.
 - [x] User reported official form submission at 18:43 UTC. No duplicate form action was performed by this documentation task.

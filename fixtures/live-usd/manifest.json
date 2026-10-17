@@ -1,0 +1,93 @@
+{
+  "schema": "tally-reconstructed-synthetic-usd-assets-v1",
+  "status": "reconstructed_synthetic_usd_test_assets",
+  "provenance": "Reconstructed synthetic test documents; not original handoff PDFs or real financial records.",
+  "original_handoff_parity": "not_verified_original_bundle_unavailable",
+  "currency": "USD explicitly printed as synthetic test data; no claim about missing originals",
+  "documents": [
+    {
+      "file": "initial-batch-usd.pdf",
+      "source_filename": "proposed-live-usd-initial-batch.pdf",
+      "sha256": "a718fd1c6f7f41b44b6f374f970c68f644a94cb366b8c774622b28403791fb8e",
+      "bytes": 7590,
+      "page_count": 2
+    },
+    {
+      "file": "coverage-statement-usd.pdf",
+      "source_filename": "proposed-live-usd-coverage-statement.pdf",
+      "sha256": "ac9fdcebba352cc5f05f7cd914defcfb247dbbacfb0a449ffc38c1209428ede5",
+      "bytes": 4199,
+      "page_count": 1
+    }
+  ],
+  "business_facts": {
+    "business_name": "Juniper Lane Bakery LLC",
+    "historical_year": 2025,
+    "payment": {
+      "date": "2025-06-05",
+      "recorded_amount_usd": "1200.00",
+      "description": "Health insurance payment",
+      "category": "Insurance",
+      "settlement_status": "not_established"
+    },
+    "partial_payroll": {
+      "start": "2025-06-01",
+      "end": "2025-06-15",
+      "workers": [
+        {
+          "label": "Worker 01",
+          "hours": 60,
+          "wages_usd": "1200.00"
+        },
+        {
+          "label": "Worker 02",
+          "hours": 55,
+          "wages_usd": "1100.00"
+        },
+        {
+          "label": "Worker 03",
+          "hours": 45,
+          "wages_usd": "900.00"
+        },
+        {
+          "label": "Worker 04",
+          "hours": 40,
+          "wages_usd": "800.00"
+        }
+      ],
+      "total_hours": 200,
+      "total_wages_usd": "4000.00",
+      "annualized": false
+    },
+    "coverage": {
+      "start": "2025-06-01",
+      "end": "2025-06-30",
+      "total_monthly_premium_usd": "1500.00",
+      "stated_employer_contribution_usd": "1200.00",
+      "stated_employee_contribution_usd": "300.00",
+      "stated_monthly_employer_share_percent": 80,
+      "payment_match": "unknown"
+    }
+  },
+  "annual_requirements": "all_eight_unknown",
+  "eligibility_conclusion": null,
+  "credit_estimate": null,
+  "calculation_enabled": false,
+  "original_interim_sha256": {
+    "initial-batch.pdf": "810149d25808af8cd8a8e221d09e879bb725ec169c4530a660f3aae6f894d333",
+    "coverage-statement.pdf": "18fead97344e16c4f8a3d330c695eb1a8b64549bd07e2d33cb78892d60d6b831"
+  },
+  "approval_boundary": "The user approved these exact synthetic USD documents for a bounded test. Immutable PDFs retain their creation-time proposed/unapproved notices; approval is not proof of provider acceptance.",
+  "live_verification": {
+    "A_upload": "one_HTTP201",
+    "A_extraction": "one_completed_response_exact_HTTP_status_not_retained",
+    "accepted_citations": 0,
+    "accepted_facts": 0,
+    "rejected_reference_containers": 8,
+    "rejection_reason": "reference_unexpected_keys",
+    "original_rejected_keys_retained": false,
+    "luna_calls": 0,
+    "B_uploaded": false,
+    "full_live_E2E": false
+  }
+}
