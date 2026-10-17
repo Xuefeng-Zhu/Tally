@@ -51,8 +51,8 @@ export class LiveWorker {
     catch(error){
       const failure=ingestFailure(error);
       if(failure.retryable)throw new DomainError(failure.code,'Source preparation is temporarily unavailable.',503,true);
-      // No AI or source version exists yet. Keep earlier evidence intact and terminalize only intake stubs.
-      await this.store.transact(state=>{for(const job of state.jobs)if(job.kind==='INGEST' && job.file_id===envelope.file_id && job.file_version_id===null && !job.committed){job.status='needs_review';job.error=failure.code;job.lease_until=null;}});
+      // The failed source may have changed before a new immutable version could be observed.
+      await engine.failPreparation(envelope.file_id,failure.code);
       return {status:'needs_review',code:failure.code};
     }
     if(observation.file_id!==envelope.file_id || observation.facts.length!==0)throw new DomainError('INVALID_SOURCE_PREPARATION','Preparation must return this file observation without extracted facts.',422);

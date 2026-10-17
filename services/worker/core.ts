@@ -81,6 +81,9 @@ function enqueueEvaluation(state: State) {
 }
 function numericVersion(version: string): bigint | null { const match = /(?:^|[^0-9])([0-9]+)$/.exec(version); return match ? BigInt(match[1]) : null; }
 function older(version: string, than: string): boolean { const a=numericVersion(version); const b=numericVersion(than); return a !== null && b !== null && a < b; }
+function preparationJobId(fileId:string):string { return `PREPARE:${CONTEXT.business_id}:${CONTEXT.extraction_schema_version}:${fileId}`; }
+function preparationBlocked(state:State,fileId:string):boolean { return state.jobs.some(job=>job.job_id===preparationJobId(fileId) && !job.committed); }
+function activeIngestLease(job:Job):boolean { return !job.committed && ['extracting','validating'].includes(job.status) && (job.lease_until??0)>Date.now(); }
 function retireUnavailable(state: State): boolean {
   let changed = false;
   for (const fact of state.facts) if (fact.verification_state === 'source_supported' && !validDocumentForFact(state,fact)) { fact.verification_state = 'needs_review'; changed = true; }
@@ -193,10 +196,16 @@ export class TallyEngine {
       let doc = state.documents.find(item=>item.file_id===source.file_id);
       if (doc && (older(source.file_version_id,doc.file_version_id) || (doc.file_version_id===source.file_version_id && doc.sha256 !== source.sha256))) return false;
       const jobId = `INGEST:${CONTEXT.business_id}:${CONTEXT.extraction_schema_version}:${source.file_id}:${source.file_version_id}:${source.sha256}`;
-      if (state.jobs.some(job=>job.job_id===jobId)) return false;
-      if (doc) Object.assign(doc,{file_version_id:source.file_version_id,sha256:source.sha256,name:source.name,folder_id:source.folder_id,source_url:source.source_url,status:'queued',error:null});
+      const existingJob=state.jobs.find(job=>job.job_id===jobId);
+      const recovering=preparationBlocked(state,source.file_id);
+      if(existingJob && !recovering)return false;
+      if(recovering){const preparation=state.jobs.find(job=>job.job_id===preparationJobId(source.file_id))!;preparation.committed=true;preparation.status='completed';preparation.error=null;}
+      const leaseActive=existingJob && activeIngestLease(existingJob);
+      if (doc) Object.assign(doc,{file_version_id:source.file_version_id,sha256:source.sha256,name:source.name,folder_id:source.folder_id,source_url:source.source_url,status:leaseActive?existingJob.status:'queued',error:null});
       else { doc={file_id:source.file_id,file_version_id:source.file_version_id,sha256:source.sha256,name:source.name,folder_id:source.folder_id,source_url:source.source_url,status:'queued',error:null,aliases:[],accepted_version:null};state.documents.push(doc); }
-      state.jobs.push({job_id:jobId,kind:'INGEST',file_id:source.file_id,file_version_id:source.file_version_id,status:'queued',attempts:0,lease_until:null,error:null,committed:false});
+      // Fresh metadata can lift the block, but cannot transfer an in-flight extraction lease.
+      if(existingJob){if(leaseActive)existingJob.error=null;else Object.assign(existingJob,{status:'queued',attempts:existingJob.committed?0:existingJob.attempts,lease_until:null,error:null,committed:false});}
+      else state.jobs.push({job_id:jobId,kind:'INGEST',file_id:source.file_id,file_version_id:source.file_version_id,status:'queued',attempts:0,lease_until:null,error:null,committed:false});
       const retired = retireUnavailable(state); const derived = refreshDerived(state,this.now());
       if(retired || derived){state.ledger_rev++;enqueueEvaluation(state);}
       return true;
@@ -208,6 +217,8 @@ export class TallyEngine {
       const doc=state.documents.find(item=>item.file_id===source.file_id);
       const job=state.jobs.find(item=>item.kind==='INGEST' && item.file_id===source.file_id && item.file_version_id===source.file_version_id);
       if(!doc || doc.file_version_id!==source.file_version_id || doc.sha256!==source.sha256 || (doc.accepted_version && older(source.file_version_id,doc.accepted_version))) {if(job){job.status='completed';job.committed=true;job.lease_until=null;}return {committed:false,alias:false};}
+      // A permanent preparation failure invalidates this file even when an older extraction is in flight.
+      if(preparationBlocked(state,source.file_id))return {committed:false,alias:false};
       if(job?.committed) return {committed:false,alias:doc.aliases.length>0};
       validateSource(source,state.profile);
       state.execution={...state.execution,extraction_mode:this.options.extractionMode ?? 'fixture'};
@@ -238,6 +249,26 @@ export class TallyEngine {
       else if(!state.pending_evaluation){doc.status='completed';if(job)job.status='completed';}
       return {committed:true,alias:Boolean(canonical && canonical.file_id!==doc.file_id)};
     });
+  }
+  /** No new version/hash is known: withdraw this file's support until fresh preparation succeeds. */
+  async failPreparation(fileId:string,code:string):Promise<void>{
+    await this.store.transact(state=>{
+      const id=preparationJobId(fileId);
+      let preparation=state.jobs.find(job=>job.job_id===id);
+      if(!preparation){preparation={job_id:id,kind:'INGEST',file_id:fileId,file_version_id:null,status:'needs_review',attempts:0,lease_until:null,error:code,committed:false};state.jobs.push(preparation);}
+      preparation.attempts++;preparation.committed=false;
+      for(const job of state.jobs)if(job.kind==='INGEST' && job.file_id===fileId && !job.committed){
+        job.error=code;
+        // Invalidation withdraws evidence, not ownership of a provider call already running.
+        if(!activeIngestLease(job)){job.status='needs_review';job.lease_until=null;}
+      }
+      const doc=state.documents.find(item=>item.file_id===fileId);
+      if(doc){doc.status='needs_review';doc.error=code;}
+      const retired=retireUnavailable(state),derived=refreshDerived(state,this.now());
+      if(retired || derived){state.ledger_rev++;enqueueEvaluation(state);}
+    });
+    // Failure of this handoff must leave the invalidation durable and the delivery retryable.
+    await this.notifyPendingEvaluation();
   }
   async failIngest(fileId:string,version:string,message:string):Promise<void>{
     await this.store.transact(state=>{
@@ -294,7 +325,7 @@ export class TallyEngine {
     if(!state.profile)throw new DomainError('PROFILE_REQUIRED','Save the business profile before processing documents.',409,true);
     let observed=state.documents.find(doc=>doc.file_id===fileId);
     if(!observed)throw new DomainError('SOURCE_NOT_OBSERVED','Prepare and observe the source before processing it.',409,true);
-    await this.store.transact(draft=>{const current=draft.documents.find(doc=>doc.file_id===fileId);for(const job of draft.jobs)if(current && job.kind==='INGEST' && job.file_id===fileId && job.file_version_id!==current.file_version_id && !job.committed){job.committed=true;job.status='completed';job.lease_until=null;}});
+    await this.store.transact(draft=>{const current=draft.documents.find(doc=>doc.file_id===fileId);for(const job of draft.jobs)if(current && job.kind==='INGEST' && job.file_id===fileId && job.file_version_id!==current.file_version_id && job.job_id!==preparationJobId(fileId) && !job.committed){job.committed=true;job.status='completed';job.lease_until=null;}});
     state=await this.state();
     observed=state.documents.find(doc=>doc.file_id===fileId)!;
     const job=state.jobs.find(item=>item.kind==='INGEST' && item.file_id===fileId && item.file_version_id===observed.file_version_id);
@@ -302,7 +333,7 @@ export class TallyEngine {
     if(job.status==='failed'||job.status==='needs_review'){await this.notifyPendingEvaluation();return {status:'needs_review',code:job.error??'INGEST_NEEDS_REVIEW'};}
     const claimed=await this.store.transact(draft=>{
       const item=draft.jobs.find(item=>item.job_id===job.job_id),doc=draft.documents.find(item=>item.file_id===fileId);
-      if(!item || item.committed || !doc || doc.file_version_id!==job.file_version_id || (item.status!=='queued' && !(['extracting','validating'].includes(item.status) && (item.lease_until??0)<=Date.now())))return false;
+      if(!item || item.committed || !doc || preparationBlocked(draft,fileId) || doc.file_version_id!==job.file_version_id || (item.status!=='queued' && !(['extracting','validating'].includes(item.status) && (item.lease_until??0)<=Date.now())))return false;
       item.status='extracting';item.attempts++;item.lease_until=Date.now()+120000;doc.status='extracting';return true;
     });
     if(!claimed)return {status:'busy'};
@@ -322,7 +353,7 @@ export class TallyEngine {
       const canonical=(await this.state()).facts.filter(fact=>fact.source.sha256===observation.sha256 && fact.value_state==='known' && ['source_supported','needs_review','superseded'].includes(fact.verification_state) && fact.source.excerpt_validation==='matched');
       let source:SourceInput;
       if(this.options.extractSource && canonical.length){
-        source={...observation,business_name:state.profile!.display_name,facts:canonical.map(fact=>({...structuredClone(fact),source:{...structuredClone(fact.source),file_id:observation.file_id,file_version_id:observation.file_version_id,sha256:observation.sha256}}))};
+        source={...observation,business_name:state.profile!.display_name,facts:canonical.map(fact=>({...structuredClone(fact),verification_state:'source_supported',source:{...structuredClone(fact.source),file_id:observation.file_id,file_version_id:observation.file_version_id,sha256:observation.sha256}}))};
       }else source=this.options.extractSource?await this.options.extractSource(observation):observation;
       if(source.file_id!==observation.file_id || source.file_version_id!==observation.file_version_id || source.sha256!==observation.sha256)throw new SourceObservationChanged(source);
       const result=await this.commitIngest(source);
