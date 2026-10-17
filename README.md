@@ -2,6 +2,8 @@
 
 Tally helps a small-business owner turn scattered records into an evidence-backed next step. The demonstration follows **Juniper Lane Bakery LLC** and one potential **2025 federal small-business health insurance credit** opportunity. It keeps source evidence, unresolved questions and the next action together.
 
+The **Rule library** contains ten distinct 2025 federal opportunities: five credits and five deductions, with official IRS sources, claimant scope and missing evidence. Nine have offline profile screening only; the health credit retains the tested two-document fixture flow. All remain professionally unreviewed, live E2E is unverified, and screening does not activate a claim or calculate savings. See the [versioned library](rules/2025/opportunity-library.json) and [deterministic screening](packages/rules/library.ts).
+
 **Current delivery:** a runnable, verified local product with synthetic records. Live Box → AWS → page E2E has **not run**. Both available demo videos show fixture execution. No eligibility decision or credit estimate is produced from these partial records.
 
 ## Try the product

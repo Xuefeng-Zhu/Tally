@@ -1,0 +1,564 @@
+[
+  {
+    "id": "irc_45r",
+    "title": "Small employer health insurance premiums credit",
+    "type": "credit",
+    "tax_year": 2025,
+    "summary": "Review employer-paid employee health premiums for a potential small-employer credit; coverage expense alone does not establish eligibility.",
+    "entity_scope": [
+      "sole_proprietorship",
+      "partnership",
+      "s_corporation",
+      "c_corporation"
+    ],
+    "scope_note": "Employer business; partnership or S corporation credits can pass through to owners. Owner personal coverage is not automatically qualifying employee coverage. This initial screening scope covers taxable businesses; tax-exempt routes require separate review.",
+    "claimant": "business",
+    "claimant_note": "The employer business is the screening subject; pass-through reporting and owner allocations require review.",
+    "sources": [
+      {
+        "title": "Instructions for Form 8941 (2025)",
+        "url": "https://www.irs.gov/instructions/i8941",
+        "verified_at": "2026-10-17T16:49:18Z",
+        "tax_year": 2025,
+        "edition": "2025"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "health_benefits_offered",
+        "flag": "health_benefits_offered",
+        "description": "Employer offers health benefits; offering benefits alone does not establish a claim."
+      },
+      {
+        "id": "annual_small_employer_health_tests",
+        "flag": "annual_small_employer_health_tests",
+        "description": "2025 eligible-employer workforce and average-wage tests, including aggregation and excluded workers, must be established."
+      },
+      {
+        "id": "qualifying_health_arrangement",
+        "flag": "qualifying_health_arrangement",
+        "description": "Qualifying premium-payment arrangement and SHOP coverage or an applicable exception must be documented."
+      },
+      {
+        "id": "health_credit_period_and_coordination",
+        "flag": "health_credit_period_and_coordination",
+        "description": "Credit-period history must permit a 2025 claim; the allowed credit reduces the related premium deduction."
+      }
+    ],
+    "missing_evidence": [
+      "Annual payroll hours, wages, ownership and related-business census",
+      "SHOP policy or exception records and employer-paid premium evidence",
+      "Prior credit claims and deduction adjustments"
+    ],
+    "professional_review_status": "not_reviewed",
+    "verification_status": "source_checked_offline_tests_only",
+    "fixture_verification": "existing_45r_offline_fixture_flow",
+    "live_e2e_status": "not_verified"
+  },
+  {
+    "id": "irc_45e",
+    "title": "Small employer retirement plan startup costs credit",
+    "type": "credit",
+    "tax_year": 2025,
+    "summary": "Review qualifying costs to establish or administer an eligible retirement plan, including employee retirement education.",
+    "entity_scope": [
+      "sole_proprietorship",
+      "partnership",
+      "s_corporation",
+      "c_corporation"
+    ],
+    "scope_note": "Eligible employer business; pass-through credits may reach owners through entity allocations. Personal IRA contributions are outside this startup-cost rule.",
+    "claimant": "business",
+    "claimant_note": "The employer business is the screening subject; pass-through reporting and owner allocations require review.",
+    "sources": [
+      {
+        "title": "Instructions for Form 8881 (12/2025), Part I Section 1",
+        "url": "https://www.irs.gov/instructions/i8881",
+        "verified_at": "2026-10-17T16:49:18Z",
+        "tax_year": 2025,
+        "edition": "2025"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "retirement_employer_size_tests",
+        "flag": "retirement_employer_size_tests",
+        "description": "Prior-year employee and compensation tests, predecessor and controlled-group rules must be checked."
+      },
+      {
+        "id": "qualifying_new_retirement_plan",
+        "flag": "qualifying_new_retirement_plan",
+        "description": "Prior plans covering substantially the same employees can prevent eligibility; the eligible plan must include a non-highly compensated eligible employee."
+      },
+      {
+        "id": "retirement_credit_period_and_coordination",
+        "flag": "retirement_credit_period_and_coordination",
+        "description": "2025 must fall within the permitted startup credit years; credited startup costs reduce the related deduction."
+      }
+    ],
+    "missing_evidence": [
+      "Prior-year payroll and employee eligibility census",
+      "Plan adoption, effective date, prior-plan and related-employer history",
+      "Startup or administration invoices, education costs and prior Form 8881 claims"
+    ],
+    "professional_review_status": "not_reviewed",
+    "verification_status": "source_checked_offline_tests_only",
+    "fixture_verification": "not_implemented",
+    "live_e2e_status": "not_verified"
+  },
+  {
+    "id": "irc_44",
+    "title": "Disabled access credit",
+    "type": "credit",
+    "tax_year": 2025,
+    "summary": "Review eligible small-business expenditures to provide disability access and comply with the Americans with Disabilities Act.",
+    "entity_scope": [
+      "sole_proprietorship",
+      "partnership",
+      "s_corporation",
+      "c_corporation"
+    ],
+    "scope_note": "Eligible small business making access expenditures; pass-through credit recipients use their allocated credit. An owner's disability alone does not establish a business claim.",
+    "claimant": "business",
+    "claimant_note": "The employer business is the screening subject; pass-through reporting and owner allocations require review.",
+    "sources": [
+      {
+        "title": "Publication 334 (2025), Disabled access credit (Form 8826)",
+        "url": "https://www.irs.gov/publications/p334",
+        "verified_at": "2026-10-17T16:49:18Z",
+        "tax_year": 2025,
+        "edition": "2025"
+      },
+      {
+        "title": "Form 8826 (Rev. September 2017), current IRS revision, instructions on page 2",
+        "url": "https://www.irs.gov/pub/irs-pdf/f8826.pdf",
+        "tax_year": 2025,
+        "verified_at": "2026-10-17T16:49:18Z",
+        "edition": "current_revision",
+        "notes": "Supporting current IRS revision, not a 2025 edition."
+      }
+    ],
+    "conditions": [
+      {
+        "id": "access_credit_business_size_tests",
+        "flag": "access_credit_business_size_tests",
+        "description": "Prior-year business-size and aggregation tests must be checked."
+      },
+      {
+        "id": "qualifying_access_expenditures",
+        "flag": "qualifying_access_expenditures",
+        "description": "Costs must be reasonable, necessary eligible access expenditures; applicable facility-date exclusions and standards require review."
+      },
+      {
+        "id": "access_credit_cost_coordination",
+        "flag": "access_credit_cost_coordination",
+        "description": "The credited portion cannot also be deducted, capitalized or used for another credit; coordinate any section 190 deduction."
+      }
+    ],
+    "missing_evidence": [
+      "Prior-year receipts, workforce and related-business records",
+      "Access-work scope, facility placed-in-service history and compliance evidence",
+      "Vendor invoices and allocation among credit, deduction and capitalized costs"
+    ],
+    "professional_review_status": "not_reviewed",
+    "verification_status": "source_checked_offline_tests_only",
+    "fixture_verification": "not_implemented",
+    "live_e2e_status": "not_verified"
+  },
+  {
+    "id": "irc_190",
+    "title": "Architectural and transportation barrier removal deduction",
+    "type": "deduction",
+    "tax_year": 2025,
+    "summary": "Review qualified business costs to remove mobility barriers for people with disabilities or older people that would otherwise be capitalized.",
+    "entity_scope": [
+      "sole_proprietorship",
+      "partnership",
+      "s_corporation",
+      "c_corporation"
+    ],
+    "scope_note": "Business of any size paying qualifying business costs; the business's tax classification determines reporting. Personal home improvements are not established as business costs by this rule.",
+    "claimant": "business",
+    "claimant_note": "The employer business is the screening subject; pass-through reporting and owner allocations require review.",
+    "sources": [
+      {
+        "title": "Tax benefits for businesses who have employees with disabilities, Barrier Removal Tax Deduction",
+        "url": "https://www.irs.gov/businesses/small-businesses-self-employed/tax-benefits-for-businesses-who-have-employees-with-disabilities",
+        "verified_at": "2026-10-17T16:49:18Z",
+        "tax_year": 2025,
+        "edition": "evergreen",
+        "notes": "This IRS guidance is evergreen, not a 2025 edition. The library applies it to a 2025 review; no deduction amount has been calculated."
+      }
+    ],
+    "conditions": [
+      {
+        "id": "qualifying_barrier_removal",
+        "flag": "qualifying_barrier_removal",
+        "description": "Work must qualify as architectural or transportation barrier removal; ordinary renovation is not sufficient evidence."
+      },
+      {
+        "id": "barrier_removal_reporting_and_limits",
+        "flag": "barrier_removal_reporting_and_limits",
+        "description": "Applicable annual limits and separate-expense reporting require review."
+      },
+      {
+        "id": "barrier_removal_credit_coordination",
+        "flag": "barrier_removal_credit_coordination",
+        "description": "Section 44 and section 190 may apply in the same year when both requirements are met; exclude the credited portion from the deduction."
+      }
+    ],
+    "missing_evidence": [
+      "Business property and barrier-removal work records",
+      "Detailed invoices and evidence of otherwise-capitalized costs",
+      "Tax-year expenditure totals and section 44 cost allocation"
+    ],
+    "professional_review_status": "not_reviewed",
+    "verification_status": "source_checked_offline_tests_only",
+    "fixture_verification": "not_implemented",
+    "live_e2e_status": "not_verified"
+  },
+  {
+    "id": "irc_51",
+    "title": "Work opportunity tax credit",
+    "type": "credit",
+    "tax_year": 2025,
+    "summary": "Review qualifying 2025 hires for an employer credit after required state workforce certification; payroll alone is insufficient.",
+    "entity_scope": [
+      "sole_proprietorship",
+      "partnership",
+      "s_corporation",
+      "c_corporation"
+    ],
+    "scope_note": "Hiring employer business, including taxable employers of any size; not a personal credit for the hired worker. Tax-exempt employer rules are narrower. This initial screening scope covers taxable businesses; tax-exempt routes require separate review.",
+    "claimant": "business",
+    "claimant_note": "The employer business is the screening subject; pass-through reporting and owner allocations require review.",
+    "sources": [
+      {
+        "title": "Work Opportunity Tax Credit",
+        "url": "https://www.irs.gov/businesses/small-businesses-self-employed/work-opportunity-tax-credit",
+        "verified_at": "2026-10-17T16:49:18Z",
+        "tax_year": 2025,
+        "edition": "evergreen",
+        "notes": "Evergreen IRS guidance checked for the 2025 hiring period; 2025 is the review year, not the publication date."
+      },
+      {
+        "title": "Instructions for Form 5884, current IRS instructions, deduction reduction",
+        "url": "https://www.irs.gov/instructions/i5884",
+        "tax_year": 2025,
+        "verified_at": "2026-10-17T16:49:18Z",
+        "edition": "current_revision",
+        "notes": "Supporting current IRS revision, not a 2025 edition."
+      }
+    ],
+    "conditions": [
+      {
+        "id": "qualifying_target_group_and_2025_start",
+        "flag": "qualifying_target_group_and_2025_start",
+        "description": "Worker must belong to a qualifying targeted group and begin work on or before December 31, 2025."
+      },
+      {
+        "id": "timely_wotc_certification",
+        "flag": "timely_wotc_certification",
+        "description": "Form 8850 pre-screening must be completed by the job-offer date and timely submitted to the state workforce agency; certification is required."
+      },
+      {
+        "id": "wotc_wages_hours_and_coordination",
+        "flag": "wotc_wages_hours_and_coordination",
+        "description": "Qualifying wages, work hours and rehire exclusions require review; coordinate other credits using the same wages and the wage deduction adjustment."
+      }
+    ],
+    "missing_evidence": [
+      "Dated offer, start date and Form 8850 submission evidence",
+      "State workforce agency certification",
+      "Payroll hours, qualifying wages, rehire history and other wage-based credit allocations"
+    ],
+    "professional_review_status": "not_reviewed",
+    "verification_status": "source_checked_offline_tests_only",
+    "fixture_verification": "not_implemented",
+    "live_e2e_status": "not_verified"
+  },
+  {
+    "id": "irc_179",
+    "title": "IRC 179 — Election to expense qualifying business property",
+    "type": "deduction",
+    "tax_year": 2025,
+    "summary": "A business may elect to expense qualifying property placed in service in 2025, subject to dollar, investment and business-income limits.",
+    "entity_scope": [
+      "sole_proprietorship",
+      "partnership",
+      "s_corporation",
+      "c_corporation"
+    ],
+    "scope_note": "Sole proprietors, partnerships, S corporations and other corporations; estates and trusts cannot elect.",
+    "claimant": "business",
+    "claimant_note": "Business taxpayer; partnership or S corporation elects and allocates to owners, who separately apply their limits.",
+    "sources": [
+      {
+        "title": "Publication 946 (2025), How To Depreciate Property",
+        "url": "https://www.irs.gov/publications/p946",
+        "verified_at": "2026-10-17T16:50:26Z",
+        "tax_year": 2025,
+        "edition": "2025"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "qualifying_section_179_property",
+        "flag": "qualifying_section_179_property",
+        "description": "Identify purchased qualifying property used predominantly (more than 50%) in an actively conducted trade or business and placed in service in 2025."
+      },
+      {
+        "id": "section_179_entity_and_owner_limits",
+        "flag": "section_179_entity_and_owner_limits",
+        "description": "Apply the 2025 dollar, investment and business-income limits; partnership/S-corporation and owner limits both matter."
+      },
+      {
+        "id": "section_179_election_and_recapture",
+        "flag": "section_179_election_and_recapture",
+        "description": "Document the election and owner allocations; review basis, carryovers and possible recapture."
+      },
+      {
+        "id": "section_179_basis_coordination",
+        "flag": "section_179_basis_coordination",
+        "description": "Coordinate asset basis with bonus and regular depreciation; do not deduct the same basis twice."
+      }
+    ],
+    "missing_evidence": [
+      "Asset invoices, seller relationship and ownership",
+      "Placed-in-service dates and business-use records",
+      "Entity tax classification, income, K-1 allocations, basis and prior depreciation/elections"
+    ],
+    "professional_review_status": "not_reviewed",
+    "verification_status": "source_checked_offline_tests_only",
+    "fixture_verification": "not_implemented",
+    "live_e2e_status": "not_verified"
+  },
+  {
+    "id": "irc_168k",
+    "title": "IRC 168(k) — Special depreciation allowance",
+    "type": "deduction",
+    "tax_year": 2025,
+    "summary": "First-year bonus depreciation may apply to qualifying business property. The 2025 law restored a 100% allowance for certain property acquired and placed in service after January 19, 2025.",
+    "entity_scope": [
+      "sole_proprietorship",
+      "partnership",
+      "s_corporation",
+      "c_corporation"
+    ],
+    "scope_note": "Business taxpayers owning qualifying depreciable property, including sole proprietors, partnerships and corporations.",
+    "claimant": "business",
+    "claimant_note": "Tax owner of depreciable property; entity-owned assets are handled in the entity depreciation computation.",
+    "sources": [
+      {
+        "title": "Instructions for Form 4562 (2025)",
+        "url": "https://www.irs.gov/instructions/i4562",
+        "verified_at": "2026-10-17T16:50:26Z",
+        "tax_year": 2025,
+        "edition": "2025"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "qualifying_bonus_property",
+        "flag": "qualifying_bonus_property",
+        "description": "Confirm property class, acquisition rules and placed-in-service date; new and certain used property may qualify."
+      },
+      {
+        "id": "bonus_acquisition_timing",
+        "flag": "bonus_acquisition_timing",
+        "description": "Do not apply the restored allowance to all 2025 purchases: property acquired before January 20, 2025 requires separate phase-down review."
+      },
+      {
+        "id": "bonus_exclusions_and_elections",
+        "flag": "bonus_exclusions_and_elections",
+        "description": "Review exclusions, business use, and any election out or transitional election."
+      },
+      {
+        "id": "bonus_basis_coordination",
+        "flag": "bonus_basis_coordination",
+        "description": "Compute after section 179 and other basis reductions, before regular depreciation; do not reuse deducted basis."
+      }
+    ],
+    "missing_evidence": [
+      "Asset owner, invoices and acquisition agreements",
+      "Property class, original/used status and business-use percentage",
+      "Placed-in-service records, basis adjustments and depreciation elections"
+    ],
+    "professional_review_status": "not_reviewed",
+    "verification_status": "source_checked_offline_tests_only",
+    "fixture_verification": "not_implemented",
+    "live_e2e_status": "not_verified"
+  },
+  {
+    "id": "irc_45b",
+    "title": "IRC 45B — Employer FICA tax credit on certain employee tips",
+    "type": "credit",
+    "tax_year": 2025,
+    "summary": "An employer may claim a general business credit for qualifying employer Social Security and Medicare taxes on employee tips. For tax years beginning after 2024, specified beauty services are included.",
+    "entity_scope": [
+      "sole_proprietorship",
+      "partnership",
+      "s_corporation",
+      "c_corporation"
+    ],
+    "scope_note": "Food/beverage employers and employers providing specified barbering/beauty services, subject to the tip and payroll conditions.",
+    "claimant": "business",
+    "claimant_note": "Employer; partnerships and S corporations report the credit for pass-through to partners/shareholders.",
+    "sources": [
+      {
+        "title": "2025 Form 8846, Credit for Employer Social Security and Medicare Taxes Paid on Certain Employee Tips (including instructions)",
+        "url": "https://www.irs.gov/pub/irs-pdf/f8846.pdf",
+        "verified_at": "2026-10-17T16:50:26Z",
+        "tax_year": 2025,
+        "edition": "2025"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "qualifying_customary_tipped_services",
+        "flag": "qualifying_customary_tipped_services",
+        "description": "Employees receive customer tips for providing, delivering or serving food/beverages for consumption, with customary tipping; or for customary-tipped barbering/hair care, nail care, esthetics, or body/spa treatments."
+      },
+      {
+        "id": "employer_fica_taxes_on_tips",
+        "flag": "employer_fica_taxes_on_tips",
+        "description": "Employer paid or incurred employer Social Security and Medicare taxes on those tips during the tax year; distinguish tips from service charges."
+      },
+      {
+        "id": "tip_credit_wage_and_credit_limits",
+        "flag": "tip_credit_wage_and_credit_limits",
+        "description": "Apply the industry-specific minimum-wage adjustment and wage-base computation, plus general business credit limits."
+      },
+      {
+        "id": "tip_credit_deduction_coordination",
+        "flag": "tip_credit_deduction_coordination",
+        "description": "Reduce the employer payroll-tax deduction by the credit amount."
+      }
+    ],
+    "missing_evidence": [
+      "Employee tip reports, payroll tax records and service/industry description",
+      "Monthly employee hours and non-tip wages",
+      "General business credit position and any K-1 allocation"
+    ],
+    "professional_review_status": "not_reviewed",
+    "verification_status": "source_checked_offline_tests_only",
+    "fixture_verification": "not_implemented",
+    "live_e2e_status": "not_verified"
+  },
+  {
+    "id": "irc_199a",
+    "title": "IRC 199A — Qualified business income deduction",
+    "type": "deduction",
+    "tax_year": 2025,
+    "summary": "An owner-level deduction based on qualified business income may apply for 2025, subject to taxable-income and other limitations.",
+    "entity_scope": [
+      "sole_proprietorship",
+      "partnership",
+      "s_corporation"
+    ],
+    "scope_note": "Owners of sole proprietorships and pass-through businesses; C-corporation income is excluded.",
+    "claimant": "owner",
+    "claimant_note": "Individual owner, or eligible estate/trust; not the partnership or S corporation itself.",
+    "sources": [
+      {
+        "title": "Instructions for Form 8995 (2025)",
+        "url": "https://www.irs.gov/instructions/i8995",
+        "verified_at": "2026-10-17T16:50:26Z",
+        "tax_year": 2025,
+        "edition": "2025"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "qualifying_trade_and_net_qbi",
+        "flag": "qualifying_trade_and_net_qbi",
+        "description": "Establish a qualifying trade or business and compute net QBI, including attributable deductions and applicable loss carryovers."
+      },
+      {
+        "id": "qbi_compensation_exclusions",
+        "flag": "qbi_compensation_exclusions",
+        "description": "Exclude employee wages, S-corporation reasonable compensation and partner guaranteed payments from QBI."
+      },
+      {
+        "id": "qbi_owner_income_and_limitations",
+        "flag": "qbi_owner_income_and_limitations",
+        "description": "Review taxable income, filing status, specified-service rules and applicable wage/property limitations."
+      },
+      {
+        "id": "qbi_owner_return_and_k1",
+        "flag": "qbi_owner_return_and_k1",
+        "description": "Use owner-level Form 8995 or 8995-A; partnerships/S corporations provide supporting K-1 information."
+      }
+    ],
+    "missing_evidence": [
+      "Owner filing status, taxable income and capital-gain information",
+      "Schedule C or K-1 QBI statements and business classification",
+      "W-2 wages, qualified-property information and loss/deduction carryovers"
+    ],
+    "professional_review_status": "not_reviewed",
+    "verification_status": "source_checked_offline_tests_only",
+    "fixture_verification": "not_implemented",
+    "live_e2e_status": "not_verified"
+  },
+  {
+    "id": "irc_162l",
+    "title": "IRC 162(l) — Self-employed health insurance deduction",
+    "type": "deduction",
+    "tax_year": 2025,
+    "summary": "A qualifying self-employed individual may deduct qualifying health insurance premiums on the individual return, subject to business-income and coverage restrictions.",
+    "entity_scope": [
+      "sole_proprietorship",
+      "partnership",
+      "s_corporation"
+    ],
+    "scope_note": "Sole proprietors, qualifying partners and qualifying more-than-2% S-corporation shareholders; this is an individual deduction.",
+    "claimant": "owner",
+    "claimant_note": "Individual self-employed owner or qualifying more-than-2% S-corporation shareholder.",
+    "sources": [
+      {
+        "title": "Instructions for Form 7206 (2025)",
+        "url": "https://www.irs.gov/instructions/i7206",
+        "verified_at": "2026-10-17T16:50:26Z",
+        "tax_year": 2025,
+        "edition": "2025"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "owner_business_established_policy_and_earnings",
+        "flag": "owner_business_established_policy_and_earnings",
+        "description": "Insurance must be established under the business and satisfy the net-profit/net-earnings or S-corporation wage requirements."
+      },
+      {
+        "id": "partner_policy_reimbursement_and_reporting",
+        "flag": "partner_policy_reimbursement_and_reporting",
+        "description": "For a policy in a partner’s name that the partner pays personally, the partnership must reimburse the premiums and report them as guaranteed payments on Schedule K-1."
+      },
+      {
+        "id": "s_corporation_owner_premium_reporting",
+        "flag": "s_corporation_owner_premium_reporting",
+        "description": "For a more-than-2% S-corporation shareholder, corporation-paid/reimbursed premiums must be reported as wages; personally paid shareholder-name policies require corporate reimbursement and W-2 box 1 reporting."
+      },
+      {
+        "id": "no_disqualifying_subsidized_plan_months",
+        "flag": "no_disqualifying_subsidized_plan_months",
+        "description": "Exclude months when eligible for a subsidized employer plan, including applicable family-employer coverage."
+      },
+      {
+        "id": "owner_insurance_earnings_and_ptc_coordination",
+        "flag": "owner_insurance_earnings_and_ptc_coordination",
+        "description": "Apply the business-specific earnings limit and coordinate any Marketplace premium tax credit."
+      }
+    ],
+    "missing_evidence": [
+      "Owner status, business earnings or S-corporation wages",
+      "Policy, premium payments and corporate reimbursement records",
+      "Form W-2, monthly other-plan eligibility and Marketplace coverage information",
+      "For partners: partnership reimbursement and Schedule K-1 guaranteed-payment reporting"
+    ],
+    "professional_review_status": "not_reviewed",
+    "verification_status": "source_checked_offline_tests_only",
+    "fixture_verification": "not_implemented",
+    "live_e2e_status": "not_verified"
+  }
+]
