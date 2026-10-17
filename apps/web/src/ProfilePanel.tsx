@@ -1,6 +1,8 @@
 import { createContext, useContext, useId, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { CONTEXT, DEFAULT_PROFILE, type Profile } from '../../../packages/contracts';
 import './settings.css';
+import {ProfileScreeningFields} from './ProfileScreeningFields';
+import type {RuleAnswer,RuleFlag} from '../../../packages/contracts/opportunity-flags';
 
 type Props = {
   profile: Profile | null;
@@ -39,11 +41,18 @@ export function ProfilePanel({ profile, busy, onSave }: Props) {
   const saveResult = draftState.saveResult;
   const id = useId();
 
-  function update<K extends keyof Profile>(key: K, value: Profile[K]) {
-    setDraftState(current => {
-      const previous = current.draft?.businessId === CONTEXT.business_id ? current.draft.profile : profile ?? DEFAULT_PROFILE;
-      return {draft: {businessId: CONTEXT.business_id, profile: {...previous, [key]: value}}, saveResult: 'idle'};
+  function editProfile(change:(previous:Profile)=>Profile) {
+    setDraftState(current=>{
+      const previous=current.draft?.businessId===CONTEXT.business_id?current.draft.profile:profile??DEFAULT_PROFILE;
+      return {draft:{businessId:CONTEXT.business_id,profile:change(previous)},saveResult:'idle'};
     });
+  }
+  function update<K extends keyof Profile>(key:K,value:Profile[K]) {
+    editProfile(previous=>({...previous,[key]:value,...(key==='health_benefits_offered'?{opportunity_flags:{...previous.opportunity_flags,health_benefits_offered:value as RuleAnswer}}:{})}));
+  }
+  function updateAnswer(flag:RuleFlag,answer:RuleAnswer) {
+    if(flag==='health_benefits_offered'){update('health_benefits_offered',answer);return;}
+    editProfile(previous=>({...previous,opportunity_flags:{...previous.opportunity_flags,[flag]:answer}}));
   }
 
   return <section className="surface settings-profile" aria-labelledby={`${id}-heading`}>
@@ -116,6 +125,8 @@ export function ProfilePanel({ profile, busy, onSave }: Props) {
           <dl className="settings-identity settings-tax-identity settings-field-wide"><div className="settings-identity-wide"><dt>Profile source</dt><dd>{draft.source_type === 'synthetic_owner_provided' ? 'Synthetic owner-provided context' : draft.source_type}</dd></div></dl>
         </fieldset>
       </details>
+
+      <ProfileScreeningFields profile={draft} onAnswer={updateAnswer}/>
 
       <footer className="settings-form-footer">
         <div className={`settings-save-state ${saveResult === 'failed' ? 'settings-save-failed' : ''}`} role="status">{busy === 'profile' ? 'Saving your business context…' : saveResult === 'saved' ? 'Your business profile is saved.' : saveResult === 'failed' ? 'This step needs attention. Check the message above before trying again.' : dirty ? 'You have unsaved changes.' : profile ? 'All changes saved.' : 'Review your details, then save to begin.'}</div>

@@ -1,7 +1,7 @@
 import libraryData from '../../rules/2025/opportunity-library.json';
 
-export type RuleFlag = string;
-export type RuleAnswer = 'yes' | 'no' | 'unknown';
+import {isOpportunityFlag, type OpportunityFlags, type RuleFlag, type RuleAnswer} from '../contracts/opportunity-flags.js';
+export type {RuleFlag, RuleAnswer} from '../contracts/opportunity-flags.js';
 export type RuleEntity = 'sole_proprietorship' | 'partnership' | 's_corporation' | 'c_corporation' | 'tax_exempt';
 export type RuleScreeningProfile = {
   tax_year: number;
@@ -9,7 +9,7 @@ export type RuleScreeningProfile = {
   activity: string;
   health_benefits_offered?: string;
   operating_states: string[];
-  opportunity_flags?: Partial<Record<RuleFlag, RuleAnswer>>;
+  opportunity_flags?: OpportunityFlags;
 };
 export type RuleSource = { title: string; url: string; tax_year: 2025; verified_at: string; edition: '2025' | 'current_revision' | 'evergreen'; notes?: string };
 export type RuleCondition = { id: string; description: string; flag: RuleFlag };
@@ -78,7 +78,7 @@ export function parseRuleLibrary(input: unknown): readonly RuleDefinition[] {
       rule.professional_review_status !== 'not_reviewed' || rule.verification_status !== 'source_checked_offline_tests_only' || rule.live_e2e_status !== 'not_verified' ||
       rule.fixture_verification !== (rule.id === 'irc_45r' ? 'existing_45r_offline_fixture_flow' : 'not_implemented')) return invalid();
     if (!Array.isArray(rule.sources) || rule.sources.length === 0 || !rule.sources.every(source => record(source) && nonempty(source.title) && officialSource(source.url) && source.tax_year === 2025 && nonempty(source.verified_at) && /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}Z)?$/.test(source.verified_at) && Number.isFinite(Date.parse(source.verified_at)) && ['2025', 'current_revision', 'evergreen'].includes(String(source.edition)) && (source.edition === '2025' || nonempty(source.notes)))) return invalid();
-    if (!Array.isArray(rule.conditions) || rule.conditions.length === 0 || !rule.conditions.every(condition => record(condition) && nonempty(condition.id) && nonempty(condition.description) && nonempty(condition.flag) && /^[a-z][a-z0-9_]*$/.test(condition.flag)) || !unique(rule.conditions.map(condition => condition.id)) || !unique(rule.conditions.map(condition => condition.flag))) return invalid();
+    if (!Array.isArray(rule.conditions) || rule.conditions.length === 0 || !rule.conditions.every(condition => record(condition) && nonempty(condition.id) && nonempty(condition.description) && isOpportunityFlag(condition.flag)) || !unique(rule.conditions.map(condition => condition.id)) || !unique(rule.conditions.map(condition => condition.flag))) return invalid();
   }
   return freeze(structuredClone(input) as RuleDefinition[]);
 }
@@ -97,9 +97,11 @@ function entityFor(value: unknown): RuleEntity | null {
   return Object.hasOwn(aliases, normalized) ? aliases[normalized] : null;
 }
 function answerFor(profile: RuleScreeningProfile | null, flag: RuleFlag): RuleAnswer {
-  const supplied = profile?.opportunity_flags?.[flag];
-  const health = flag === 'health_benefits_offered' ? profile?.health_benefits_offered : undefined;
-  if (supplied !== undefined && health !== undefined && supplied !== health && supplied !== 'unknown' && health !== 'unknown') return 'unknown';
+  const flags = profile && Object.hasOwn(profile, 'opportunity_flags') ? profile.opportunity_flags : undefined;
+  const descriptor = flags && Object.hasOwn(flags, flag) ? Object.getOwnPropertyDescriptor(flags, flag) : undefined;
+  const supplied = descriptor && 'value' in descriptor ? descriptor.value : undefined;
+  const health = flag === 'health_benefits_offered' && profile && Object.hasOwn(profile, 'health_benefits_offered') ? profile.health_benefits_offered : undefined;
+  if (supplied !== undefined && health !== undefined && supplied !== health) return 'unknown';
   const value = supplied ?? health;
   return value === 'yes' || value === 'no' ? value : 'unknown';
 }

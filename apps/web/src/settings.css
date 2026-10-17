@@ -130,3 +130,15 @@
   .settings-sample-footnote, .settings-sample-guidance { font-size: 11px; }
   .settings-pending-update { align-items: start; flex-direction: column; gap: 9px; }
 }
+
+.settings-screening-content{padding:0 22px 22px;min-width:0}
+.settings-screening-rule{border-top:1px solid var(--line,#e0e6e2);min-width:0}
+.settings-screening-rule>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0;cursor:pointer;list-style:none}
+.settings-screening-rule>summary::-webkit-details-marker{display:none}
+.settings-screening-rule>summary>span:first-child{display:grid;gap:5px;min-width:0}
+.settings-screening-rule>summary strong{font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.settings-screening-rule>summary span span{font-size:12px;color:var(--muted,#68766e)}
+.settings-screening-rule[open]>summary .settings-disclosure-plus{transform:rotate(45deg)}
+.settings-screening-rule .settings-disclosure-fields{padding:0 0 20px}
+.settings-screening-rule label{line-height:1.5;overflow-wrap:anywhere}
+@media(max-width:600px){.settings-screening-content{padding:0 16px 16px}.settings-screening-rule>summary{gap:10px}}
