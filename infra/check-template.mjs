@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { MODEL } from '../packages/contracts/model.ts';
+import { APPLICATION_MODEL } from '../packages/contracts/application-model.ts';
 
 // Offline review checks. This does not invoke AWS or replace a SAM transform/lint.
 const template = JSON.parse(await readFile(new URL('./template.yaml', import.meta.url), 'utf8'));
@@ -34,7 +35,13 @@ assert.equal(worker.Events.Jobs.Properties.MaximumBatchingWindowInSeconds, 0);
 assert.equal(worker.Events.Jobs.Properties.ScalingConfig.MaximumConcurrency, 2);
 assert.deepEqual(worker.Events.Jobs.Properties.FunctionResponseTypes, ['ReportBatchItemFailures']);
 assert.equal(worker.Environment.Variables.BEDROCK_REGION, 'us-east-1');
-assert.deepEqual(worker.Environment.Variables.BEDROCK_MODEL_ID, { Ref: 'BedrockModelId' });
+assert.equal(worker.Environment.Variables.BEDROCK_MODEL_ID, undefined);
+assert.equal(worker.Environment.Variables.TALLY_EXPLANATION_ADAPTER, APPLICATION_MODEL.provider);
+assert.equal(worker.Environment.Variables.OPENROUTER_MODEL_ID, APPLICATION_MODEL.model_id);
+assert.equal(worker.Environment.Variables.OPENROUTER_CREDENTIALS_SECRET_ARN, undefined);
+assert.equal(template.Parameters.OpenRouterCredentialsSecretArn, undefined);
+assert.deepEqual(template.Metadata.ApplicationProviderProposal,{Status:'undeployed',Provider:'openrouter',ModelId:'openai/gpt-6-luna',CredentialHandoff:'pending_separate_approval'});
+// Legacy Bedrock parameter and IAM proposal remain unchanged; they are not the selected runtime provider.
 assert.equal(template.Parameters.BedrockModelId.Default, MODEL.model_id);
 assert.deepEqual(template.Parameters.BedrockModelId.AllowedValues, [MODEL.model_id]);
 assert.equal(template.Parameters.BedrockModelArn, undefined);

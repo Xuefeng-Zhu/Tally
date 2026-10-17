@@ -4,7 +4,13 @@
   "Description": "Tally review-only demo infrastructure. No deployment or live provider gate has been approved.",
   "Metadata": {
     "SpecificationStatus": "interim_reconstructed",
-    "LiveGateStatus": "not_run_not_approved"
+    "LiveGateStatus": "not_run_not_approved",
+    "ApplicationProviderProposal": {
+      "Status": "undeployed",
+      "Provider": "openrouter",
+      "ModelId": "openai/gpt-6-luna",
+      "CredentialHandoff": "pending_separate_approval"
+    }
   },
   "Parameters": {
     "ResourcePrefix": {
@@ -518,18 +524,16 @@
             "BOX_CREDENTIALS_SECRET_ARN": {
               "Ref": "BoxCredentialsSecretArn"
             },
-            "TALLY_EXPLANATION_ADAPTER": "strands",
+            "TALLY_EXPLANATION_ADAPTER": "openrouter",
             "BEDROCK_REGION": "us-east-1",
-            "BEDROCK_MODEL_ID": {
-              "Ref": "BedrockModelId"
-            },
             "TALLY_EXECUTION_MODE": "aws",
             "TALLY_APPROVED_LIVE_FLOW": {
               "Ref": "ApprovedLiveFlow"
             },
             "BOX_WEBHOOK_ID": {
               "Ref": "BoxWebhookId"
-            }
+            },
+            "OPENROUTER_MODEL_ID": "openai/gpt-6-luna"
           }
         },
         "LoggingConfig": {

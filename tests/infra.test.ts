@@ -4,6 +4,8 @@ import {readFileSync} from 'node:fs';
 import {assertApprovedLiveFlow} from '../services/runtime/live-api.js';
 import {createProductionRuntime} from '../services/runtime/production.js';
 import {MODEL} from '../packages/contracts/model.js';
+import {APPLICATION_MODEL} from '../packages/contracts/application-model.js';
+import {readConfiguration} from '../packages/contracts/configuration.js';
 
 const template=JSON.parse(readFileSync(new URL('../infra/template.yaml',import.meta.url),'utf8'));
 type Parameters=Record<string,string>;
@@ -79,7 +81,7 @@ test('one SQS source caps normal worker concurrency at2 without an unavailable a
 });
 
 
-test('regional selected model grants only InvokeModel on its one exact foundation model',()=>{
+test('legacy Bedrock permission proposal remains exact while application uses OpenRouter',()=>{
  const exactArn='arn:aws:bedrock:us-east-1::foundation-model/mistral.ministral-3-14b-instruct';
  assert.equal(MODEL.model_id,'mistral.ministral-3-14b-instruct');
  assert.equal(MODEL.foundation_model_id,MODEL.model_id);
@@ -91,7 +93,24 @@ test('regional selected model grants only InvokeModel on its one exact foundatio
  const modelStatements=(role:string)=>template.Resources[role].Properties.Policies.flatMap((policy:any)=>policy.PolicyDocument.Statement).filter((statement:any)=>statement.Action.some((action:string)=>action.startsWith('bedrock:')||action.startsWith('aws-marketplace:')));
  assert.deepEqual(modelStatements('ApiRole'),[]);
  assert.deepEqual(modelStatements('WorkerRole'),[{Sid:'InvokeExactMinistral14B',Effect:'Allow',Action:['bedrock:InvokeModel'],Resource:exactArn}]);
- assert.deepEqual(template.Resources.WorkerFunction.Properties.Environment.Variables.BEDROCK_MODEL_ID,{Ref:'BedrockModelId'});
+ assert.equal(template.Resources.WorkerFunction.Properties.Environment.Variables.BEDROCK_MODEL_ID,undefined);
+ assert.equal(template.Parameters.LiveProvidersEnabled.Default,'false');
+ assert.equal(template.Parameters.ApprovedLiveFlow.Default,'false');
+});
+
+
+test('undeployed worker proposal matches selected application config without new credential permissions',()=>{
+ const env=template.Resources.WorkerFunction.Properties.Environment.Variables;
+ assert.equal(env.TALLY_EXPLANATION_ADAPTER,'openrouter');
+ assert.equal(env.OPENROUTER_MODEL_ID,'openai/gpt-6-luna');
+ const config=readConfiguration({TALLY_EXPLANATION_ADAPTER:env.TALLY_EXPLANATION_ADAPTER,OPENROUTER_MODEL_ID:env.OPENROUTER_MODEL_ID,AWS_REGION:'us-east-1'});
+ assert.equal(config.explanationAdapter,APPLICATION_MODEL.provider);
+ assert.equal(config.explanationModel,APPLICATION_MODEL.model_id);
+ assert.equal(env.BEDROCK_MODEL_ID,undefined);
+ assert.equal(env.OPENROUTER_CREDENTIALS_SECRET_ARN,undefined);
+ assert.equal(template.Parameters.OpenRouterCredentialsSecretArn,undefined);
+ assert.ok(Object.keys(template.Resources.ApiFunction.Properties.Environment.Variables).every(key=>!key.startsWith('OPENROUTER_')));
+ assert.deepEqual(template.Metadata.ApplicationProviderProposal,{Status:'undeployed',Provider:'openrouter',ModelId:'openai/gpt-6-luna',CredentialHandoff:'pending_separate_approval'});
  assert.equal(template.Parameters.LiveProvidersEnabled.Default,'false');
  assert.equal(template.Parameters.ApprovedLiveFlow.Default,'false');
 });
