@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import { readFile, realpath } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
@@ -19,6 +20,15 @@ if(process.platform==='linux'){assert.equal(nativeBytes.subarray(0,4).toString('
 else assert.equal(nativeBytes.subarray(0,4).toString('hex'),'cffaedfe');
 const handlerPath=manifest.handler.replace(/\.handler$/,'.mjs');
 const exported=await import(pathToFileURL(join(artifact,handlerPath)).href);assert.equal(typeof exported.handler,'function');
+// Import a bundle at the same depth as the runtime handlers and exercise its default asset URL.
+const {loadRulePack}=await import(pathToFileURL(join(artifact,'services/rules/rule-probe.mjs')).href);
+const ruleContext=loadRulePack();
+assert.equal(ruleContext.rule_set_id,'us-federal-irc45r-2025-v1');assert.equal(ruleContext.tax_year,2025);
+const rulePaths=['rules/2025/us-federal-irc45r-2025-v1.json','rules/2025/sources/manifest.json'];
+assert.deepEqual(manifest.rule_resources,rulePaths);
+const ruleAssets={};
+for(const path of rulePaths){const resolved=await realpath(join(artifact,path));assert.ok(!relative(artifact,resolved).startsWith('..'),'Rule resource escaped artifact');ruleAssets[path]=createHash('sha256').update(await readFile(resolved)).digest('hex');}
+assert.equal(ruleContext.rule_pack_sha256,ruleAssets[rulePaths[0]]);
 const {parsePdfBytes}=await import(new URL('./pdf-probe.mjs',import.meta.url));
 const pageCounts=[];
 for(const name of ['initial-batch.pdf','coverage-statement.pdf']){
@@ -26,4 +36,4 @@ for(const name of ['initial-batch.pdf','coverage-statement.pdf']){
   pageCounts.push(parsed.pageCount);assert.match(parsed.pages.join(' '),/Juniper Lane Bakery LLC/);assert.match(parsed.sha256,/^[a-f0-9]{64}$/);
 }
 assert.deepEqual(pageCounts,[2,1]);
-console.log(JSON.stringify({status:'passed',artifact_root:artifact,platform:`${process.platform}/${process.arch}`,handler_import:'passed',dependency_paths:paths,native_DOMMatrix:'passed',native_binary_header:'passed',pdf_pages:pageCounts,network:'blocked',live_calls:'not_run'}));
+console.log(JSON.stringify({status:'passed',artifact_root:artifact,platform:`${process.platform}/${process.arch}`,handler_import:'passed',dependency_paths:paths,native_DOMMatrix:'passed',native_binary_header:'passed',pdf_pages:pageCounts,rule_pack_loaded:'passed',rule_set_id:ruleContext.rule_set_id,rule_resources:ruleAssets,network:'blocked',live_calls:'not_run'}));

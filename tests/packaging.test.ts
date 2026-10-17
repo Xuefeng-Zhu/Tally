@@ -1,21 +1,32 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
-import { cp, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 const root=resolve(import.meta.dirname,'..');
 function run(args:string[],options:{cwd?:string;env?:NodeJS.ProcessEnv}={}){return spawnSync(process.execPath,args,{cwd:root,encoding:'utf8',timeout:120000,env:{...process.env,NODE_PATH:'',NODE_OPTIONS:'',NAPI_RS_NATIVE_LIBRARY_PATH:'',...options.env},...options});}
 
-test('both host Lambda artifacts resolve and parse PDFs in isolated copies; missing native bindings fail closed',async()=>{
+test('both host Lambda artifacts resolve PDFs and rule context in isolation; missing dependencies or rule assets fail closed',async()=>{
   const directory=await mkdtemp(join(tmpdir(),'tally-packaging-test-'));
   try{
     const built=run(['scripts/build-lambdas.mjs','--outdir',directory]);assert.equal(built.status,0,built.stderr);const receipt=JSON.parse(built.stdout.trim().split('\n').at(-1)!);assert.equal(receipt.status,'host_build_verified');assert.equal(receipt.deployable,false);
     for(const name of ['ApiFunction','WorkerFunction']){
       const artifact=join(directory,name),manifest=JSON.parse(await readFile(join(artifact,'tally-lambda-artifact.json'),'utf8')),verification=JSON.parse(await readFile(join(artifact,'packaging/verification.json'),'utf8'));
-      assert.equal(manifest.deployable,false);assert.equal(manifest.platform,process.platform);assert.equal(manifest.architecture,process.arch);assert.equal(verification.handler_import,'passed');assert.equal(verification.native_DOMMatrix,'passed');assert.deepEqual(verification.pdf_pages,[2,1]);assert.ok(Object.values(verification.dependency_paths).every(value=>typeof value==='string' && value.startsWith('node_modules/')));
+      assert.equal(manifest.deployable,false);assert.equal(manifest.platform,process.platform);assert.equal(manifest.architecture,process.arch);assert.equal(verification.handler_import,'passed');assert.equal(verification.native_DOMMatrix,'passed');assert.deepEqual(verification.pdf_pages,[2,1]);assert.equal(verification.rule_pack_loaded,'passed');assert.equal(verification.rule_set_id,'us-federal-irc45r-2025-v1');assert.deepEqual(manifest.rule_resources,['rules/2025/us-federal-irc45r-2025-v1.json','rules/2025/sources/manifest.json']);assert.deepEqual((await readdir(join(artifact,'rules/2025'))).sort(),['sources','us-federal-irc45r-2025-v1.json']);assert.deepEqual((await readdir(join(artifact,'rules/2025/sources'))).sort(),['manifest.json']);for(const path of manifest.rule_resources){assert.match(verification.rule_resources[path],/^[a-f0-9]{64}$/);assert.deepEqual(await readFile(join(artifact,path)),await readFile(join(root,path)));}assert.ok(Object.values(verification.dependency_paths).every(value=>typeof value==='string' && value.startsWith('node_modules/')));
       const handler=manifest.handler.replace(/\.handler$/,'.mjs');assert.ok((await stat(join(artifact,handler))).size>0);
       const rejected=run(['--input-type=module','-e',`await import(${JSON.stringify(join(artifact,handler))});`],{cwd:artifact,env:{AWS_LAMBDA_FUNCTION_NAME:'tally-host-artifact-guard'}});assert.notEqual(rejected.status,0);assert.match(rejected.stderr,/HOST_LAMBDA_ARTIFACT_NOT_DEPLOYABLE/);
+    }
+    // Mutate only this temporary artifact: each asset is independently required by the actual bundled loader.
+    const worker=join(directory,'WorkerFunction');
+    for(const resource of ['rules/2025/us-federal-irc45r-2025-v1.json','rules/2025/sources/manifest.json']){
+      const path=join(worker,resource),original=await readFile(path);
+      try{
+        await rm(path);
+        const missing=run(['--require',join(worker,'packaging/offline-guard.cjs'),join(worker,'packaging/verify.mjs')],{cwd:worker});assert.notEqual(missing.status,0,`${resource} missing must fail isolated verification`);assert.match(missing.stderr,/EXPLANATION_RULE_CONTEXT_INVALID/);assert.ok(!missing.stdout.includes('"status":"passed"'));
+        await writeFile(path,'{}');
+        const corrupt=run(['--require',join(worker,'packaging/offline-guard.cjs'),join(worker,'packaging/verify.mjs')],{cwd:worker});assert.notEqual(corrupt.status,0,`${resource} invalid must fail isolated verification`);assert.match(corrupt.stderr,/EXPLANATION_RULE_CONTEXT_INVALID/);assert.ok(!corrupt.stdout.includes('"status":"passed"'));
+      }finally{await writeFile(path,original);}
     }
     const broken=join(directory,'missing-native');await cp(join(directory,'WorkerFunction'),broken,{recursive:true});const manifest=JSON.parse(await readFile(join(broken,'tally-lambda-artifact.json'),'utf8'));await rm(join(broken,'node_modules',manifest.native_package),{recursive:true});const rejected=run([join(broken,'packaging/verify.mjs')],{cwd:broken});assert.notEqual(rejected.status,0,'Missing native dependency must not fall back to repository modules');
   }finally{await rm(directory,{recursive:true,force:true});}

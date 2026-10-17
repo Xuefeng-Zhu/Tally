@@ -3,7 +3,91 @@
   "tax_year": 2025,
   "specification_status": "interim_reconstructed",
   "purpose": "Evidence readiness only; never determines eligibility or estimates a credit.",
-  "rule_source_ids": ["irc-45r", "form-8941-instructions-2025"],
-  "annual_requirements": ["annual_fte", "annual_fica_wages", "owner_family_exclusions", "related_employer_aggregation", "shop_or_exception", "qualifying_arrangement", "credit_period", "annual_net_premiums_and_limits"],
-  "constraints": ["Partial payroll is never annualized", "A recorded payment is distinct from a stated contribution", "No payment-to-coverage match without explicit matching evidence", "Stated share requires positive reconciled premium components for one valid period", "No eligibility or dollar estimate from these fixtures"]
+  "rule_source_ids": [
+    "irc-45r",
+    "form-8941-instructions-2025"
+  ],
+  "annual_requirements": [
+    "annual_fte",
+    "annual_fica_wages",
+    "owner_family_exclusions",
+    "related_employer_aggregation",
+    "shop_or_exception",
+    "qualifying_arrangement",
+    "credit_period",
+    "annual_net_premiums_and_limits"
+  ],
+  "constraints": [
+    "Partial payroll is never annualized",
+    "A recorded payment is distinct from a stated contribution",
+    "No payment-to-coverage match without explicit matching evidence",
+    "Stated share requires positive reconciled premium components for one valid period",
+    "No eligibility or dollar estimate from these fixtures"
+  ],
+  "context_version": "irs8941-2025-source-context-v1",
+  "evidence_checks": [
+    "recorded_insurance_payment",
+    "partial_payroll",
+    "coverage_period",
+    "stated_premium_breakdown",
+    "payment_to_coverage_match"
+  ],
+  "source_context": [
+    {
+      "requirement_id": "annual_fte",
+      "source_id": "form-8941-instructions-2025",
+      "pdf_page": 6,
+      "section": "Column (b), Employee Hours of Service",
+      "excerpt": "Enter the total hours of service for the tax year for each employee listed in column (a)."
+    },
+    {
+      "requirement_id": "annual_fica_wages",
+      "source_id": "form-8941-instructions-2025",
+      "pdf_page": 6,
+      "section": "Column (c), Employee Wages Paid",
+      "excerpt": "Enter the total wages paid for the tax year"
+    },
+    {
+      "requirement_id": "owner_family_exclusions",
+      "source_id": "form-8941-instructions-2025",
+      "pdf_page": 6,
+      "section": "Excluded employees",
+      "excerpt": "Hours and wages of these employees and premiums paid for them aren’t counted when you figure your credit."
+    },
+    {
+      "requirement_id": "related_employer_aggregation",
+      "source_id": "form-8941-instructions-2025",
+      "pdf_page": 2,
+      "section": "Employers treated as a single employer",
+      "excerpt": "Treat the following employers as a single employer to figure the credit."
+    },
+    {
+      "requirement_id": "shop_or_exception",
+      "source_id": "form-8941-instructions-2025",
+      "pdf_page": 3,
+      "section": "Health Insurance Coverage",
+      "excerpt": "qualified health plan offered through a Small Business Health Options Program (SHOP) Marketplace."
+    },
+    {
+      "requirement_id": "qualifying_arrangement",
+      "source_id": "form-8941-instructions-2025",
+      "pdf_page": 4,
+      "section": "More than one plan",
+      "excerpt": "Different types of health insurance plans are generally not aggregated for purposes of meeting the qualifying arrangement requirement."
+    },
+    {
+      "requirement_id": "credit_period",
+      "source_id": "form-8941-instructions-2025",
+      "pdf_page": 2,
+      "section": "Credit Period",
+      "excerpt": "An eligible small employer (or any predecessor) files an income tax return with an attached Form 8941 with line A checked “Yes” and a positive amount on line 12"
+    },
+    {
+      "requirement_id": "annual_net_premiums_and_limits",
+      "source_id": "form-8941-instructions-2025",
+      "pdf_page": 8,
+      "section": "Column (b), Employer Premiums Paid",
+      "excerpt": "Enter the total employer premiums paid for the tax year"
+    }
+  ]
 }

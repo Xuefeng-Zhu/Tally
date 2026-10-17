@@ -36,7 +36,7 @@ export async function verifyIsolatedArtifact(artifactsDir){
     delete env.AWS_ACCESS_KEY_ID;delete env.AWS_SECRET_ACCESS_KEY;delete env.AWS_SESSION_TOKEN;delete env.AWS_PROFILE;
     const output=run(process.execPath,['--require',join(isolated,'packaging/offline-guard.cjs'),join(isolated,'packaging/verify.mjs')],{cwd:isolated,env});
     const receipt=JSON.parse(output.trim().split('\n').at(-1));
-    if(receipt.artifact_root!==await realpath(isolated)||receipt.pdf_pages.join(',')!=='2,1')throw new Error('ISOLATED_ARTIFACT_VERIFICATION_FAILED');
+    if(receipt.artifact_root!==await realpath(isolated)||receipt.pdf_pages.join(',')!=='2,1'||receipt.rule_pack_loaded!=='passed')throw new Error('ISOLATED_ARTIFACT_VERIFICATION_FAILED');
     return {...receipt,artifact_root:'temporary isolated copy (removed after verification)'};
   }finally{await rm(temporary,{recursive:true,force:true});}
 }
@@ -54,7 +54,7 @@ export async function buildLambda({functionName,artifactsDir,mode='host',install
   if(minimum[0]<22 || minimum[0]===22&&minimum[1]<13)throw new Error('PDF_RUNTIME_REQUIRES_NODE_22_13_OR_NEWER');
   const entry=`services/${role}/handler`;
   const banner=`import {createRequire as __tallyCreateRequire} from 'node:module';const require=__tallyCreateRequire(import.meta.url);if(process.platform!==${JSON.stringify(process.platform)}||process.arch!==${JSON.stringify(process.arch)})throw new Error('LAMBDA_ARTIFACT_PLATFORM_MISMATCH');${mode==='host'?"if(process.env.AWS_LAMBDA_FUNCTION_NAME)throw new Error('HOST_LAMBDA_ARTIFACT_NOT_DEPLOYABLE');":''}`;
-  await build({absWorkingDir:root,entryPoints:{[entry]:`${entry}.ts`,'packaging/pdf-probe':'services/providers/pdf.ts'},bundle:true,platform:'node',target:'node22',format:'esm',outdir:artifact,outExtension:{'.js':'.mjs'},sourcemap:false,banner:{js:banner},external:['pdfjs-dist','@napi-rs/canvas']});
+  await build({absWorkingDir:root,entryPoints:{[entry]:`${entry}.ts`,'packaging/pdf-probe':'services/providers/pdf.ts','services/rules/rule-probe':'services/rules/rule-pack.ts'},bundle:true,platform:'node',target:'node22',format:'esm',outdir:artifact,outExtension:{'.js':'.mjs'},sourcemap:false,banner:{js:banner},external:['pdfjs-dist','@napi-rs/canvas']});
   const dependencies=['pdfjs-dist','@napi-rs/canvas',nativeName()];
   const versions={};
   for(const name of dependencies){
@@ -62,11 +62,13 @@ export async function buildLambda({functionName,artifactsDir,mode='host',install
     versions[name]=metadata.version;
     await cp(source,join(artifact,'node_modules',name),{recursive:true,dereference:true});
   }
+  const ruleResources=['rules/2025/us-federal-irc45r-2025-v1.json','rules/2025/sources/manifest.json'];
+  for(const resource of ruleResources){await mkdir(dirname(join(artifact,resource)),{recursive:true});await cp(join(root,resource),join(artifact,resource));}
   await mkdir(join(artifact,'packaging/fixtures'),{recursive:true});
   for(const filename of ['initial-batch.pdf','coverage-statement.pdf'])await cp(join(root,'fixtures/interim',filename),join(artifact,'packaging/fixtures',filename));
   await cp(join(root,'scripts/verify-lambda-artifact.mjs'),join(artifact,'packaging/verify.mjs'));
   await cp(join(root,'tests/offline-guard.cjs'),join(artifact,'packaging/offline-guard.cjs'));
-  const manifest={schema:'tally-lambda-artifact-v1',function_name:functionName,handler:`${entry}.handler`,platform:process.platform,architecture:process.arch,node_version:process.versions.node,deployable:mode==='lambda',build_mode:mode,dependency_versions:versions,native_package:nativeName(),resources:['pdfjs-dist/legacy/build/pdf.mjs','pdfjs-dist/legacy/build/pdf.worker.mjs','pdfjs-dist/cmaps','pdfjs-dist/standard_fonts','pdfjs-dist/wasm'],specification_status:'interim_reconstructed'};
+  const manifest={schema:'tally-lambda-artifact-v1',function_name:functionName,handler:`${entry}.handler`,platform:process.platform,architecture:process.arch,node_version:process.versions.node,deployable:mode==='lambda',build_mode:mode,dependency_versions:versions,native_package:nativeName(),resources:['pdfjs-dist/legacy/build/pdf.mjs','pdfjs-dist/legacy/build/pdf.worker.mjs','pdfjs-dist/cmaps','pdfjs-dist/standard_fonts','pdfjs-dist/wasm',...ruleResources],rule_resources:ruleResources,specification_status:'interim_reconstructed'};
   await writeFile(join(artifact,'package.json'),JSON.stringify({private:true,type:'module'},null,2));
   await writeFile(join(artifact,manifestName),JSON.stringify(manifest,null,2));
   const verification=await verifyIsolatedArtifact(artifact);
