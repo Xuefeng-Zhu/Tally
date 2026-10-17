@@ -16,7 +16,7 @@ export function App(){
  const [page,setPage]=useState<Page>(readPage),[section,setSection]=useState<'business'|'connections'|'samples'>('business');
  const [detailTab,setDetailTab]=useState<'summary'|'evidence'|'requirements'>('summary');
  const main=useRef<HTMLElement>(null);const sample=state.execution.intake_mode==='fixture';
- useEffect(()=>{const update=()=>{const hash=window.location.hash.slice(1);if(pages.some(p=>p.id===hash))setPage(readPage());};window.addEventListener('hashchange',update);return()=>window.removeEventListener('hashchange',update);},[]);
+ useEffect(()=>{const update=()=>setPage(readPage());window.addEventListener('hashchange',update);return()=>window.removeEventListener('hashchange',update);},[]);
  function navigate(next:Page){setPage(next);window.history.pushState(null,'',`#${next}`);window.scrollTo({top:0,behavior:'instant'});main.current?.focus({preventScroll:true});}
  function settings(next:'business'|'connections'|'samples'='business'){setSection(next);navigate('settings');}
  function opportunity(){setDetailTab('summary');navigate('opportunity');}
