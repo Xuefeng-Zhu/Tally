@@ -48,7 +48,7 @@ export function SettingsPage({state, busy, onSave, onLoad, onReconcile, initialS
 }
 
 function Connections({state}: {state: State}) {
-  const explanationRan = state.execution.explanation_mode === 'live_bedrock';
+  const explanationRan = ['live_bedrock','live_openrouter'].includes(state.execution.explanation_mode);
   return <section className="surface settings-connections" aria-labelledby="connections-heading">
     <header className="settings-section-header"><div><h2 id="connections-heading">Connections</h2><p className="muted">Where your records and explanations come from.</p></div></header>
     <article className="settings-connection-row">
@@ -57,7 +57,7 @@ function Connections({state}: {state: State}) {
     </article>
     <article className="settings-connection-row">
       <div className="settings-service-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z" stroke="currentColor" strokeWidth="1.5" /></svg></div>
-      <div className="settings-connection-body"><div className="settings-connection-title"><h3>AI explanations</h3><span className="status-chip">{explanationRan ? 'Previously used' : state.execution.explanation_mode === 'fixture' ? 'Sample mode' : 'Not verified'}</span></div><p className="muted">{explanationRan ? 'The last explanation used Amazon Bedrock. It summarizes the evidence while annual checks remain separate.' : state.execution.explanation_mode === 'fixture' ? 'This workspace is using local sample explanations.' : state.execution.explanation_mode === 'deterministic_fallback' ? 'The latest explanation used the built-in fallback. Provider access is not verified here.' : 'A live explanation has not run in this workspace.'}</p></div>
+      <div className="settings-connection-body"><div className="settings-connection-title"><h3>AI explanations</h3><span className="status-chip">{explanationRan ? 'Previously used' : state.execution.explanation_mode === 'fixture' ? 'Sample mode' : 'Not verified'}</span></div><p className="muted">{explanationRan ? `The last explanation used ${state.execution.explanation_mode === 'live_openrouter' ? 'OpenRouter' : 'Amazon Bedrock'}. It summarizes the evidence while annual checks remain separate.` : state.execution.explanation_mode === 'fixture' ? 'This workspace is using local sample explanations.' : state.execution.explanation_mode === 'deterministic_fallback' ? 'The latest explanation used the built-in fallback. Provider access is not verified here.' : 'A live explanation has not run in this workspace.'}</p></div>
     </article>
     <footer className="settings-connection-footer"><span aria-hidden="true">↗</span><p>Connection setup is handled separately. You do not need to enter credentials here.</p></footer>
   </section>;
@@ -81,6 +81,6 @@ function SampleWorkspace({state, busy, onLoad, onReconcile}: Pick<SettingsPagePr
     })}</div>
     {!state.profile && <p className="settings-sample-guidance" role="status">Save your business profile before adding samples.</p>}
     {state.pending_evaluation && <div className="settings-pending-update"><p>An assessment update is pending.</p><button className="text-button" disabled={!!busy} onClick={() => void onReconcile()}>{busy === 'reconcile' ? 'Updating…' : 'Update assessment'} <span aria-hidden="true">↻</span></button></div>}
-    <p className="settings-sample-footnote">Samples stay local. They do not upload to Box or call a model provider.</p>
+    <p className="settings-sample-footnote">Sample documents use local extraction. Connections shows the source of the latest explanation.</p>
   </section>;
 }
