@@ -35,6 +35,26 @@ test('URLs, secret markers and document instructions are rejected without record
   assert.deepEqual(captured.response.reference.business_name,[]);assert.ok(captured.redactions.some(row=>row.reason===reason));assert.ok(!serialized.includes('PRIVATE_TOKEN'));assert.ok(captured.redactions.every(row=>Object.keys(row).sort().join(',')==='container,field,observed_type,reason'));
  }
 });
+// Deliberately synthetic key-shaped strings, never credentials or provider inputs.
+test('AWS access-key-shaped answers are redacted even when source-bound',()=>{
+ for(const prefix of ['AKIA','ASIA']){
+  const syntheticKey=prefix+'ABCDEFGHIJKLMNOP',snapshot={...pdf,pages:[`Identifier: ${syntheticKey}.`]};
+  const captured=projectBoxExtractionForCapture(input(`Identifier: ${syntheticKey}.`,syntheticKey),snapshot,fileId);
+  assert.equal(captured.response.answer.business_name,null);
+  assert.ok(captured.redactions.some(row=>row.container==='answer'&&row.reason==='contains_secret_marker'));
+  assert.ok(!JSON.stringify(captured).includes(syntheticKey));
+ }
+});
+test('AWS access-key-shaped quotes are redacted without discarding safe answers',()=>{
+ for(const prefix of ['AKIA','ASIA']){
+  const syntheticKey=prefix+'0123456789ABCDEF',text=`Juniper Lane Bakery LLC.\nIdentifier: ${syntheticKey}.`;
+  const captured=projectBoxExtractionForCapture(input(text),{...pdf,pages:[text]},fileId);
+  assert.equal(captured.response.answer.business_name,'Juniper Lane Bakery LLC');
+  assert.deepEqual(captured.response.reference.business_name,[]);
+  assert.ok(captured.redactions.some(row=>row.container==='reference'&&row.reason==='contains_secret_marker'));
+  assert.ok(!JSON.stringify(captured).includes(syntheticKey));
+ }
+});
 test('reference rejection reasons distinguish file, page, text, excerpt, shape and bounds',()=>{
  const baseline={item_id:fileId,page:0,text:'Juniper Lane Bakery LLC.'};
  const cases:[unknown,string][]=[

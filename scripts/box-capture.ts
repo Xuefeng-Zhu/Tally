@@ -12,7 +12,7 @@ function textRejection(value:string,quote=false):string|null{
  // CR/LF/tab are ordinary quote whitespace. Other controls must not be normalized away.
  if((quote?/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/:/[\u0000-\u001f\u007f-\u009f]/).test(value))return 'unsupported_control_character';
  if(/(?:https?|file|s3):|www\./i.test(value))return 'contains_url';
- if(/\b(?:Bearer|AKIA|ASIA|access_token|client_secret|SecretString|X-Amz-)\b/i.test(value))return 'contains_secret_marker';
+ if(/\b(?:Bearer|AKIA|ASIA|access_token|client_secret|SecretString|X-Amz-)\b/i.test(value)||/(?:AKIA|ASIA)[A-Z0-9]{16}/.test(value))return 'contains_secret_marker';
  if(/(?:ignore\s+(?:(?:all|previous|prior)\s+)*instructions|system\s+prompt|<\/?(?:system|assistant)>|\b(?:you are eligible|confirmed tax credit)\b)/i.test(value))return 'contains_instruction';
  return null;
 }
