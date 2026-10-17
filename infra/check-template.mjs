@@ -14,6 +14,10 @@ assert.equal(byType('AWS::DynamoDB::Table').length, 1);
 assert.equal(byType('AWS::SQS::Queue').length, 2);
 assert.equal(byType('AWS::SecretsManager::Secret').length, 0);
 assert.equal(template.Parameters.LiveProvidersEnabled.Default, 'false');
+assert.equal(template.Parameters.ApprovedLiveFlow.Default, 'false');
+assert.equal(template.Parameters.BoxWebhookId.Default, '');
+assert.equal(template.Parameters.BoxWebhookId.AllowedPattern, '(|[0-9]+)');
+assert.ok(template.Rules.RequireWebhookIdBeforeLive.Assertions.length > 0);
 for (const parameter of ['BoxCredentialsSecretArn', 'BoxWebhookSignaturesSecretArn']) {
   assert.equal(template.Parameters[parameter].Default, undefined);
   assert.match(template.Parameters[parameter].AllowedPattern, /secretsmanager:us-east-1/);
@@ -76,6 +80,15 @@ for (const name of ['ApiRole', 'WorkerRole']) {
   assert.deepEqual(state.Condition['ForAllValues:StringEquals']['dynamodb:LeadingKeys'], ['TENANT#demo-bakery-001#STATE']);
 }
 const apiStatements = resources.ApiRole.Properties.Policies[0].PolicyDocument.Statement;
+assert.deepEqual(resources.ApiFunction.Properties.Environment.Variables.BOX_CREDENTIALS_SECRET_ARN, {Ref:'BoxCredentialsSecretArn'});
+const apiSecret = apiStatements.filter(statement => statement.Action.includes('secretsmanager:GetSecretValue'));
+assert.equal(apiSecret.length, 1);
+assert.deepEqual(apiSecret[0].Action, ['secretsmanager:GetSecretValue']);
+assert.deepEqual(apiSecret[0].Resource, [{Ref:'BoxCredentialsSecretArn'},{Ref:'BoxWebhookSignaturesSecretArn'}]);
+const workerSecrets = resources.WorkerRole.Properties.Policies[0].PolicyDocument.Statement.filter(statement => statement.Action.includes('secretsmanager:GetSecretValue'));
+assert.equal(workerSecrets.length, 1);
+assert.deepEqual(workerSecrets[0].Action, ['secretsmanager:GetSecretValue']);
+assert.deepEqual(workerSecrets[0].Resource, {Ref:'BoxCredentialsSecretArn'});
 assert.ok(apiStatements.every(statement => statement.Action.every(action => !action.startsWith('bedrock:'))));
 const bedrockStatements=resources.WorkerRole.Properties.Policies[0].PolicyDocument.Statement.filter(statement=>statement.Action.some(action=>action.startsWith('bedrock:')));
 assert.equal(bedrockStatements.length,3);

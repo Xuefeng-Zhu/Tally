@@ -31,8 +31,9 @@
     },
     "BoxWebhookId": {
       "Type": "String",
-      "AllowedPattern": "[0-9]+",
-      "Description": "Existing approved Box webhook ID."
+      "AllowedPattern": "(|[0-9]+)",
+      "Description": "Actual approved Box webhook ID. May be empty only while both live gates are false; bind the real numeric ID before enabling either gate.",
+      "Default": ""
     },
     "LiveProvidersEnabled": {
       "Type": "String",
@@ -201,9 +202,14 @@
                   "Action": [
                     "secretsmanager:GetSecretValue"
                   ],
-                  "Resource": {
-                    "Ref": "BoxWebhookSignaturesSecretArn"
-                  }
+                  "Resource": [
+                    {
+                      "Ref": "BoxCredentialsSecretArn"
+                    },
+                    {
+                      "Ref": "BoxWebhookSignaturesSecretArn"
+                    }
+                  ]
                 },
                 {
                   "Sid": "WritePrecreatedLogGroup",
@@ -409,6 +415,9 @@
             "TALLY_EXECUTION_MODE": "aws",
             "TALLY_APPROVED_LIVE_FLOW": {
               "Ref": "ApprovedLiveFlow"
+            },
+            "BOX_CREDENTIALS_SECRET_ARN": {
+              "Ref": "BoxCredentialsSecretArn"
             }
           }
         },
@@ -616,6 +625,51 @@
       "Value": {
         "Ref": "StateTable"
       }
+    }
+  },
+  "Rules": {
+    "RequireWebhookIdBeforeLive": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Or": [
+              {
+                "Fn::And": [
+                  {
+                    "Fn::Equals": [
+                      {
+                        "Ref": "LiveProvidersEnabled"
+                      },
+                      "false"
+                    ]
+                  },
+                  {
+                    "Fn::Equals": [
+                      {
+                        "Ref": "ApprovedLiveFlow"
+                      },
+                      "false"
+                    ]
+                  }
+                ]
+              },
+              {
+                "Fn::Not": [
+                  {
+                    "Fn::Equals": [
+                      {
+                        "Ref": "BoxWebhookId"
+                      },
+                      ""
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "AssertDescription": "BoxWebhookId must be the actual numeric webhook ID before either live gate is enabled; empty is allowed only when both gates are false."
+        }
+      ]
     }
   }
 }
