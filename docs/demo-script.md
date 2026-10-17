@@ -1,115 +1,51 @@
-# Tally — three-minute demo script
+# Tally demo and recording script
 
-## What can be presented today
+## Required disclosure
 
-Tally currently has a verified local **fixture demonstration**. No actual Box-to-AWS end-to-end run has passed. Say this clearly when presenting the current build.
+The recording uses a fictional Juniper Lane Bakery and reconstructed historical 2025 records. **Document extraction is fixture-based unless the actual recording proves otherwise.** The selected explanation provider is OpenRouter exact `openai/gpt-6-luna`; final local integration and accepted runtime results are pending. A real accepted explanation may be called live OpenRouter only when the current receipt/UI shows that mode. A deterministic fallback must remain labeled fallback.
 
-Two existing recordings are available:
+One separate actual Box upload/extraction and deployed disabled AWS infrastructure are partial integration evidence. Neither proves the complete Box → AWS → explanation → page flow. Do not imply that a synthetic fixture action uploaded anything to Box, ran Lambda or wrote DynamoDB.
 
-| Recording | Duration / frame size | Location | What it proves |
-| --- | --- | --- | --- |
-| Earlier fixture walkthrough | 84.00 seconds / 1440 × 900 | `.artifacts/demo/tally-fixture-demo.mp4`; Library `libfile_9fa03e0fde308191948107b768f026b8` | The earlier local sample workflow, including the annual checklist |
-| Redesigned product walkthrough | 84.24 seconds / 1440 × 1000 | `.artifacts/redesign-demo/tally-redesign-demo.mp4`; Library `libfile_78a8814795b88191bc93bb05e6087c19` | The redesigned local sample workflow and source inspection |
+## Capture preparation
 
-Both videos use reconstructed synthetic fixtures and make no live Box or model calls. They are existing short product recordings, not a completed recording of this three-minute spoken script. Library file IDs are not public submission video URLs. See [redesign review](redesign-review.md) and the ignored recording manifests for capture evidence.
+- Use a fresh isolated `TALLY_DATA_PATH` and alternate matched ports/origin/proxy target; preserve the user's normal workspace. Startup can resume pending jobs, so do not reuse an unknown unfinished provider state.
+- Use the verified launch command in [README](../README.md); the optional OpenRouter command must be finalized before it is presented as runnable.
+- Keep keys and this script offscreen. Use 1440×1000 or another readable viewport and actual browser frames.
+- Confirm the starting state and actual execution mode. Allow processing to finish; explain any pending/attention/fallback state truthfully.
+- Keep a quiet English caption visible: **Synthetic records · fixture extraction**. Add **OpenRouter explanation** only after current accepted runtime evidence; otherwise use **Sample/rule-based explanation** as shown.
 
-## Before the rehearsal
+## Short actual recording — target 90 seconds
 
-- Have the build runner start a fresh, isolated **fixture** workspace. Use a new temporary `TALLY_DATA_PATH`; preserve the owner's working `.data/state.json`. Do not delete records or stop another running workspace to obtain a clean screen.
-- Open that workspace at `#overview`. Confirm there is no saved business profile or opportunity yet. Use 1440 × 1000 where practical and check that text is readable.
-- Keep this script off-screen. Use only the fictional Juniper Lane Bakery profile and the two labeled local samples.
-- The four main navigation routes are `#overview`, `#documents`, `#opportunity` and `#settings`. Settings sections and Opportunity tabs are selected within their route; they are not separate URLs.
-- Allow processing to finish before moving on. If the review remains pending or a record needs attention, explain that actual state. Do not narrate an update that has not appeared.
+| Time | Actual action | English narration/caption |
+| --- | --- | --- |
+|0:00–0:08|Overview; show synthetic disclosure|“Tally turns scattered records into evidence, a next step and visible unknowns. This is a fictional2025 bakery.”|
+|0:08–0:22|Settings → Business profile; Save business profile|“A little business context organizes the review. Approximate headcount does not settle annual workforce rules.”|
+|0:22–0:36|Sample data → Sample workspace → Add payment & payroll sample; return Overview|“This labeled fixture contains a payment and partial payroll. The coverage statement is still missing.”|
+|0:36–0:48|Documents → Initial payment and partial payroll → recorded information/source PDF; Opportunity → Evidence|“The recorded information stays connected to its source. A summary never replaces that record.”|
+|0:48–1:02|Sample data → Add coverage statement sample; wait; Opportunity → Overview|“The same opportunity updates. The statement reports twelve hundred employer contribution out of fifteen hundred total: eighty percent for this month.”|
+|1:02–1:20|Annual review; show all eight rows and payment-match status|“Payment matching and all eight annual requirements remain unknown. There is no eligibility decision or credit estimate.”|
+|1:20–1:30|Refresh and end on current opportunity/Overview|“The evidence and next step persist. The displayed explanation mode tells us whether this used OpenRouter or the labeled fallback.”|
 
-## Current fixture presentation — exactly 3:00
+Do not compress a still-running request into a claimed result. Extend within the approved 60–90 second range only if the complete source/annual tail remains readable; otherwise trim earlier pauses and keep the actual processing result. A recording with fixture extraction plus accepted OpenRouter explanation is a **local hybrid demo**, not a full live Box/AWS E2E recording.
 
-The times are rehearsal targets. Spoken lines leave room for the listed clicks and short pauses.
+## Three-minute presenter talk
 
-### 0:00–0:20 — The problem and the boundary
+**0:00–0:30 — Problem and disclosure.** “Small-business owners have payment, payroll and insurance records scattered across documents. Tally brings them into one evidence review and gives a specific next step. These are fictional historical 2025 records, with fixture extraction and the explanation mode shown on screen.”
 
-**Show:** Overview (`#overview`). Keep the priority panel and navigation visible.
+**0:30–1:10 — Context, first record and evidence.** Save business context, add payment/payroll sample and inspect Documents/Evidence. “This records a payment and a partial payroll period. The next step is to obtain coverage dates and the premium split. We do not infer that the payment belongs to a particular coverage statement.”
 
-**Say:**
+**1:10–1:50 — Same opportunity update.** Add coverage sample and show the same opportunity. “The statement gives a stated monthly employer share of 80%. This is document arithmetic, not the annual contribution test or a promise of a tax credit. The model explains a deterministic result; it cannot change the evidence or invent an amount.”
 
-> Small business owners have records scattered across payment, payroll and insurance documents. Tally brings those records together and gives them a specific next step, with the open questions still visible. This is a local demonstration using a fictional business and historical 2025 sample records.
+**1:50–2:25 — Unknowns and rule coverage.** Show Annual review and briefly Rule library if time permits. “Eight annual questions remain separate and unknown. The library lists ten federal opportunities; nine have offline profile screening only. Professional review remains pending, and no savings or credit estimate is calculated.”
 
-### 0:20–0:40 — Business context
+**2:25–3:00 — Actual engineering and limits.** “The local workflow and persistence are verified. We separately observed one real Box upload and extraction with matching scalar values, but zero accepted citations; monetary source proof remains incomplete. AWS infrastructure is deployed with live gates disabled, and both Linux ARM64 packages passed actual Lambda probes. The selected explanation provider is OpenRouter `openai/gpt-6-luna`; only describe an accepted response if the current receipt shows one. The full Box-to-AWS application flow remains unproven.”
 
-**Do:** Choose **Set up business details**, or **Settings → Business profile**. Review the fixed bakery identity. Briefly open **People & health benefits**, then choose **Save business profile**. Wait for the saved state.
+## Presenter guardrails
 
-**Say:**
-
-> We start with a little business context. The sample identity is fixed, while headcount, benefits and ownership context can be updated. Those answers help organize the review; approximate headcount does not establish the annual workforce requirements.
-
-### 0:40–1:00 — Add the first record
-
-**Do:** Choose the top-bar **Sample data** control, which opens **Settings → Sample workspace**. Choose **Add payment & payroll sample**. Once processing finishes, return to **Overview**.
-
-**Say:**
-
-> This labeled sample contains a recorded insurance payment and part of June’s payroll. It runs locally, without Box or model calls. The new priority tells us the coverage statement is missing.
-
-### 1:00–1:25 — Inspect the source
-
-**Do:** Open **Documents**. Select **Initial payment and partial payroll**. Show **Recorded information**, then choose **Open source PDF**. Briefly show the actual PDF and return to the Tally tab. Open **Opportunity → Evidence**.
-
-**Say:**
-
-> Each record stays connected to its source. We can inspect the original sample PDF, the period it covers and the facts accepted from it. The evidence view keeps excerpts and verification alongside those facts, so a summary does not replace the underlying record.
-
-### 1:25–1:45 — A specific next step
-
-**Do:** Select the Opportunity **Overview** tab. Show **Your next step** and **Payment linked to this coverage: Unknown**. Choose **Go to documents**.
-
-**Say:**
-
-> The next step is concrete: add a coverage statement with the dates and premium breakdown. The payment is recorded, but its connection to this coverage has not been confirmed. Tally does not turn a matching-looking amount into a settled payment match.
-
-### 1:45–2:10 — Update the same opportunity
-
-**Do:** Choose the top-bar **Sample data** control, then **Add coverage statement sample**. Wait for processing to finish. Return to **Overview → Review opportunity**. Show the updated Opportunity **Overview** and its monthly share panel.
-
-**Say:**
-
-> Adding the coverage statement updates the same opportunity. The statement reports fifteen hundred dollars in total monthly premium and twelve hundred from the employer: a stated eighty percent share. That is a monthly statement calculation. Payment matching and the annual contribution rules remain open.
-
-### 2:10–2:40 — Keep the annual questions separate
-
-**Do:** Choose **Annual review**. Keep all eight rows visible where possible. Expand one row, then collapse it so the complete checklist is visible again.
-
-**Say:**
-
-> Document support is separate from the annual assessment. All eight annual requirements are still unknown: full-year employee hours and wages, owner and family exclusions, related businesses, SHOP coverage or an exception, the contribution arrangement, earlier credit years, and full-year premiums and limits. There is no credit estimate or eligibility conclusion from these partial records.
-
-### 2:40–3:00 — Close on the product value
-
-**Do:** Return to Opportunity **Overview**, then **Overview** in the main navigation. End on the current priority. Do not open provider settings or a terminal.
-
-**Say:**
-
-> Tally turns scattered records into evidence, a clear next step and visible unknowns. The local workflow works today. Live Box ingestion and AWS processing remain the next acceptance milestone; adapters and offline tests do not establish live success.
-
-## Future live presentation — conditional, not yet recordable
-
-AWS sign-in is complete. The parent operator reports a read-only STS identity check of a root principal in account ending **4085**; that observed login does not authorize future use of the root session. Actual Box AI extraction, Luna invocation and the full application flow remain unverified.
-
-A **Tally app was created in the existing Box account** after specific app-creation and legal approval. The alternative-account signup was stopped; no new account or signup is needed. Configuration review is pending. The observed defaults are **App Access Only** with **Read/Write files** checked and **Manage webhooks** off. No **Manage AI** option was visible across the three reviewed permission categories; that is not an entitlement decision. The service account has not been generated; Box indicates that occurs after **Authorize**. No scope change, authorization, Box API call or secret fetch is approved by this script.
-
-The **Individual** plan label does not prove AI is unavailable. Box AI entitlement and quota remain **unverified**. Box documents a [free Developer plan with 1,000 Box AI units](https://developer.box.com/guides/getting-started/free-developer-plan) as an option to assess, not a requirement to open another account or proof of this workspace's available units.
-
-The user approved a **USD 10 total deployment-and-test budget**. That ceiling does not authorize Box plan purchases, IAM changes, OAuth/scope changes, additional app creation or the proposed data flow. Resolve the exact operations, identities and targets in the [live E2E plan](live-e2e.md) before execution.
-
-A final **live** recording must follow this order:
-
-1. Complete the separately authorized Box/AWS integration with the intended accounts, actual inbox and approved synthetic documents.
-2. Pass an actual live end-to-end journey: Box source ingestion → durable AWS work → verified facts → current evaluation → displayed opportunity. Check actual provider execution and label any fallback accurately.
-3. Fix any failures, rerun the live journey and retain safe evidence of the successful retest. Offline mocks or the two existing fixture videos do not satisfy this gate.
-4. Only then rehearse and record the final live demo. Do not publish or submit it without the separate authorization still required.
-
-After those gates pass, keep the same three-minute structure and replace the two Settings sample actions with the approved live intake path. For a manual demonstration, use **Documents → Open Box inbox**, upload the approved payment/payroll document, then choose **Analyze inbox**; repeat with the approved coverage statement. The current primary action leads to Documents; it does not itself upload a file. Wait for each accepted source and current assessment before continuing.
-
-A manual **Analyze inbox** run does not prove webhook delivery. Claim the webhook path only after a genuine Box upload event is authenticated, durably queued and correlated to the actual worker result. Show and label whichever path was verified; a crafted signed replay is a separate signature/replay test.
-
-Replace the opening disclosure with an accurate statement of the approved live execution actually shown. Replace the closing integration sentence only after the corresponding live gates pass. Do not call a deterministic fallback a successful live model explanation. Keep the synthetic/historical disclosure, monthly-only 80% wording, unresolved payment match, eight annual unknowns and absence of an estimate in every version.
-
-The original `tally-build-handoff.zip` and its exact contracts/PDFs remain unavailable. The present fixtures are reconstructed; neither recording establishes original-bundle parity. See the [submission checklist](submission-checklist.md) before preparing a final delivery.
+- Actual Box evidence: upload 201/extraction 200, six observed values matched, zero accepted citations, dollar-only currency. Do not call this accepted source-supported normalization.
+- Actual AWS evidence: deployed disabled resources and passed packaging probes. Do not claim live webhook/SQS/DynamoDB application processing from their existence.
+- OpenRouter: six earlier reported calls cost USD 0.0021400 total; latest two fell back and final tests are pending. Do not quote this as whole-project spend or a success rate.
+- Keep any provider error/fallback visible and label it. No model rotation or unapproved repeat call to improve a take.
+- Two earlier 84-second recordings are fixture-only; a new recording requires actual playback verification. Do not relabel them as live.
+- The original ZIP/contracts/PDFs remain unavailable. No exact handoff parity, eligibility, savings, annual estimate or event-compliance certification is claimed.
+- Publication, access grants and submission remain separate actions. See [submission checklist](submission-checklist.md).

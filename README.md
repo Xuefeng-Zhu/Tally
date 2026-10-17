@@ -4,7 +4,7 @@ Tally helps a small-business owner turn scattered records into an evidence-backe
 
 The **Rule library** contains ten distinct 2025 federal opportunities: five credits and five deductions, with official IRS sources, claimant scope and missing evidence. Nine have offline profile screening only; the health credit retains the tested two-document fixture flow. All remain professionally unreviewed, live E2E is unverified, and screening does not activate a claim or calculate savings. See the [versioned library](rules/2025/opportunity-library.json) and [deterministic screening](packages/rules/library.ts).
 
-**Current delivery:** a runnable, verified local product with synthetic records. Live Box → AWS → page E2E has **not run**. Both available demo videos show fixture execution. No eligibility decision or credit estimate is produced from these partial records.
+**Current delivery:** a runnable local product with synthetic records and a verified offline fixture flow. The user-selected explanation target is **OpenRouter `openai/gpt-6-luna`**; its final local runtime verification and new recording are pending. One actual Box upload/extraction and a deployed disabled AWS stack provide separate partial evidence. Full Box → AWS → explanation → page E2E is **not proven**. No eligibility decision or credit estimate is produced from these partial records.
 
 ## Try the product
 
@@ -12,7 +12,8 @@ Prerequisite: Node.js **22.13 or newer, below 25**, with npm. The project pins N
 
 ```sh
 npm ci
-TALLY_EXECUTION_MODE=fixture LIVE_PROVIDERS_ENABLED=false TALLY_APPROVED_LIVE_FLOW=false npm run dev
+TALLY_EXECUTION_MODE=fixture TALLY_OPENROUTER_ENABLED=false \
+LIVE_PROVIDERS_ENABLED=false TALLY_APPROVED_LIVE_FLOW=false npm run dev
 ```
 
 Open **http://127.0.0.1:5173**. The API listens on **http://127.0.0.1:4318**. Both bind to loopback. Fixture mode needs no credentials and makes no Box, Bedrock or other provider calls.
@@ -35,6 +36,7 @@ The server does **not** automatically load a `.env` file. Pass settings through 
 | Setting | Fixture default | Purpose |
 | --- | --- | --- |
 | `TALLY_EXECUTION_MODE` | `fixture` | Local fixture backend; `aws` selects the approved signed upstream |
+| `TALLY_OPENROUTER_ENABLED` | `false` | Explicit opt-in to metered local fixture explanations |
 | `TALLY_DATA_PATH` | `.data/state.json` | Local JSON state only |
 | `TALLY_LOCAL_PORT` | `4318` | Loopback API |
 | `TALLY_WEB_PORT` | `5173` | Vite port, fails if occupied |
@@ -59,7 +61,8 @@ The unit suite blocks external networking. The browser journey also blocks exter
 ```sh
 # Terminal 1: preserve the default working state and ports.
 TALLY_QA_DIR=$(mktemp -d /tmp/tally-qa.XXXXXX)
-TALLY_EXECUTION_MODE=fixture LIVE_PROVIDERS_ENABLED=false TALLY_APPROVED_LIVE_FLOW=false \
+TALLY_EXECUTION_MODE=fixture TALLY_OPENROUTER_ENABLED=false \
+LIVE_PROVIDERS_ENABLED=false TALLY_APPROVED_LIVE_FLOW=false \
 TALLY_DATA_PATH="$TALLY_QA_DIR/state.json" TALLY_LOCAL_PORT=4324 \
 TALLY_WEB_PORT=5177 TALLY_WEB_ORIGIN=http://127.0.0.1:5177 \
 TALLY_API_PROXY_TARGET=http://127.0.0.1:4324 npm run dev
@@ -86,25 +89,44 @@ flowchart LR
   C --> UI
 ```
 
-Fixture mode uses a local JSON store and local jobs. The implemented AWS path uses an IAM-authenticated API, signature-checked Box webhook, SQS, DynamoDB, Box structured extraction and Strands/Bedrock Luna explanations. These adapters have mocked/offline coverage; the deployed path remains unverified.
+Fixture mode uses a local JSON store and local jobs. The implemented AWS path uses an IAM-authenticated API, signature-checked Box webhook, SQS, DynamoDB and Box structured extraction. Its reviewed stack is deployed with both live gates false; full application data flow remains unverified. The selected new explanation path is server-side OpenRouter `openai/gpt-6-luna`, with local integration in progress. Earlier Strands/Bedrock probes are historical provider evidence, not the selected demo path.
 
 The deterministic evaluator owns statuses, facts, calculations, annual unknowns and next actions. AI can explain a valid result; it cannot decide eligibility, invent evidence or supply an unsupported amount. Read [architecture and data flow](docs/architecture.md).
 
-## Real integration status
+## Verification and integration status
 
-| Stage | Status |
-| --- | --- |
-| Local product, fixture A→B, source PDF links and persistence | Verified |
-| AWS browser-backed CLI login and STS identity | Existing temporary root session approved for bounded Tally preparation; exact runtime grants and secret setup pending |
-| Luna inference-profile metadata in `us-east-1` | ACTIVE; invocation and entitlement remain unverified |
-| Box browser session | Observed; dedicated Tally app/folder and extraction entitlement unverified |
-| Linux ARM64 SAM build | Not run: SAM CLI absent and Docker daemon unavailable |
-| Box upload/webhook/extraction → DynamoDB → Luna → page | **NOT RUN** |
-| Final live E2E recording | **NOT RUN**; follows integration, E2E, fixes and retest |
+| Area | Observed result | Limit |
+| --- | --- | --- |
+| Local fixture product | Profile → A → same-card B, 80% monthly share, source links, eight annual Unknowns, refresh/restart and recovery verified | Synthetic fixture extraction; no annual eligibility or estimate |
+| Actual Box test | One upload HTTP201 and one 18-field extraction HTTP200; six observed values matched the synthetic source | Zero accepted citations in the saved projection; `$` does not prove USD; full source-supported normalization is unverified |
+| AWS | Reviewed disabled stack CREATE_COMPLETE with 17 resources; Lambda/SQS/DynamoDB/API infrastructure and separate private S3 artifacts exist | Both live gates false; infrastructure and successful ARM64 packaging probes do not prove application E2E |
+| Selected explanations | OpenRouter exact `openai/gpt-6-luna`; final integration verification pending | Earlier reported six calls cost USD 0.0021400 in total; latest two fell back. Final two tests/results are pending; this is not an acceptance claim |
+| New demo recording | Pending final runtime verification | Existing two recordings show fixture execution only |
+| Full Box/AWS application journey | **NOT PROVEN** | No claim of genuine webhook → worker → accepted facts → current model explanation → UI success |
 
-No Tally/Millie-named CloudFormation stacks, Lambda functions or DynamoDB tables were found in the inspected `us-east-1` listing. That is a scoped metadata observation, not a claim about every account resource or region. No deployment, paid provider call, IAM expansion or Box authorization was performed.
+The AWS deployment has no newly deployed OpenRouter credential or OpenRouter-specific runtime wiring. Do not enable cloud gates to try a local demo. The [organizer page](https://luma.com/bqo9xii4) asks projects to use Box and AWS; no Bedrock-only requirement was found in the reviewed rules. These facts do **not** certify event compliance or judge acceptance.
 
-[Deployment runbook](docs/deployment.md), [costs and approval boundaries](docs/costs-and-approvals.md), and [live E2E checklist](docs/live-e2e.md) describe the remaining steps. The live flags default false and are configuration guards, not human authorization. A spend limit, exact identities, resource targets and Box entitlement must be established before execution.
+[Provider evidence](docs/providers.md), [deployment runbook](docs/deployment.md) and [verification matrix](docs/verification-matrix.md) retain the detailed boundaries. The USD 10 total deployment/test ceiling excludes Box purchases; provider activity must stay within its explicit approved scope.
+
+## Optional OpenRouter demonstration
+
+The selected exact target is `openai/gpt-6-luna`, selected by `TALLY_EXPLANATION_ADAPTER=openrouter`; `TALLY_OPENROUTER_ENABLED=false` is the offline default. The integrated command below is under final runtime verification. It opts into metered explanations for fixture intake only and does not enable deployed AWS gates.
+
+Set `OPENROUTER_PRIOR_SPEND_USD` in the server environment to the verified cumulative prior spend before starting; do not reset it to zero to reuse a budget. With the already approved credential file in place:
+
+```sh
+TALLY_DEMO_DIR=$(mktemp -d /tmp/tally-openrouter-demo.XXXXXX)
+TALLY_EXECUTION_MODE=fixture TALLY_OPENROUTER_ENABLED=true \
+TALLY_EXPLANATION_ADAPTER=openrouter OPENROUTER_MODEL_ID=openai/gpt-6-luna \
+LIVE_PROVIDERS_ENABLED=false TALLY_APPROVED_LIVE_FLOW=false \
+TALLY_DATA_PATH="$TALLY_DEMO_DIR/state.json" TALLY_LOCAL_PORT=4324 \
+TALLY_WEB_PORT=5177 TALLY_WEB_ORIGIN=http://127.0.0.1:5177 \
+TALLY_API_PROXY_TARGET=http://127.0.0.1:4324 \
+node --env-file="$HOME/.config/openrouter/credentials.env" \
+  node_modules/tsx/dist/cli.mjs scripts/dev.ts
+```
+
+Open `http://127.0.0.1:5177`; stop any earlier isolated pair on those same ports first. Use Node 22 as required above. The server parent loads the credential file; the Vite child filters provider variables. Load an already approved credential only through this normal server-side environment/Node `--env-file` path. Never pass a key in a command argument, copy it into this repository or expose it to Vite/browser code. Use a fresh isolated `TALLY_DATA_PATH`: startup may resume pending jobs. An accepted real explanation must have a truthful OpenRouter receipt/UI label; deterministic fallback must remain labeled fallback. Fixture extraction plus a real explanation is a **hybrid demonstration**, not a live Box/AWS E2E.
 
 ## Evidence and fixture provenance
 
@@ -125,4 +147,4 @@ The existing synthetic PDFs lack an explicit USD currency token. Live normalizat
 - [Cost assumptions and exact approval boundaries](docs/costs-and-approvals.md)
 - [Three-minute English demo script](docs/demo-script.md) and [submission checklist](docs/submission-checklist.md)
 
-The repository is private. Judge access, submission form and shareable video URL remain separate review items; pushing source does not publish the product or submit it.
+Repository visibility, the reviewed source commit, judge access, submission destination and shareable video URL must be checked at handoff. A code push is not a hackathon submission. No publication, visibility change or submission is performed by these instructions.
