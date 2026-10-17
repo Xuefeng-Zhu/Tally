@@ -1,6 +1,6 @@
 import test, { afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_PROFILE } from '../packages/contracts/index.js';
+import { ANNUAL_IDS, EVIDENCE_IDS, DEFAULT_PROFILE } from '../packages/contracts/index.js';
 import { TallyEngine, MemoryStore } from '../services/worker/core.js';
 import type { ExplanationContext } from '../services/providers/explanation.js';
 import { createOpenRouterExplainer, OPENROUTER_CONFIG } from '../services/providers/openrouter.js';
@@ -70,6 +70,9 @@ test('one grounded strict JSON call uses the fixed model, route, price limits an
   assert.equal(body.stream, false);
   assert.equal(body.response_format.type, 'json_schema');
   assert.equal(body.response_format.json_schema.strict, true);
+  assert.deepEqual(body.response_format.json_schema.schema.properties.fact_ids.items.enum, context.opportunity.fact_ids);
+  assert.deepEqual(body.response_format.json_schema.schema.properties.rule_ids.items.enum, [...ANNUAL_IDS, ...EVIDENCE_IDS]);
+  assert.ok(!body.response_format.json_schema.schema.properties.rule_ids.items.enum.includes('irc-45r'));
   assert.deepEqual(body.provider, { require_parameters: true, only: ['openai'], allow_fallbacks: false, max_price: { prompt: 0.10, completion: 0.50 } });
   assert.deepEqual(body.reasoning, { effort: 'none', exclude: true });
   assert.deepEqual(body.prompt_cache_options, { mode: 'explicit' });
@@ -81,6 +84,8 @@ test('one grounded strict JSON call uses the fixed model, route, price limits an
   assert.deepEqual(prompt.allowed_fact_ids, context.opportunity.fact_ids);
   assert.ok(!JSON.stringify(receipt).includes('offline-test-placeholder'));
   assert.ok(!('prompt' in receipt));
+  assert.equal(receipt.failureDiagnostic, undefined);
+  assert.equal(receipt.referenceDiagnostic, undefined);
 });
 
 test('shared run budget permits exactly two calls even with concurrent evaluations, then fails closed', async () => {
@@ -92,6 +97,7 @@ test('shared run budget permits exactly two calls even with concurrent evaluatio
   assert.deepEqual(receipts.map(receipt => receipt.attempted), [true, true, false]);
   assert.equal(receipts[2].reason, 'EXPLANATION_ATTEMPT_LIMIT');
   assert.equal(receipts[2].mode, 'deterministic_fallback');
+  assert.equal(receipts[2].failureDiagnostic?.stage, 'request');
   assert.ok(receipts.every(receipt => receipt.cumulativeUpperBoundUsd <= 0.50));
 });
 
@@ -102,9 +108,20 @@ test('oversized input and mismatched rule context are rejected before spending a
   const oversized = await explain({ ...context, previousSummary: 'x'.repeat(100_001) });
   assert.equal(oversized.reason, 'EXPLANATION_INPUT_LIMIT');
   assert.equal(oversized.attempted, false);
+  assert.equal(oversized.failureDiagnostic?.stage, 'request');
   const mismatch = await explain({ ...context, opportunity: { ...context.opportunity, rule_set_id: 'wrong-rule' } });
   assert.equal(mismatch.reason, 'EXPLANATION_RULE_CONTEXT_INVALID');
   assert.equal(mismatch.attemptsUsed, 0);
+  assert.equal(mismatch.failureDiagnostic?.stage, 'request');
+  assert.equal(mock.calls.length, 0);
+  const emptyReferences = await explain({ ...context, opportunity: { ...context.opportunity, fact_ids: [] } });
+  assert.equal(emptyReferences.reason, 'EXPLANATION_REFERENCE_CONTEXT_INVALID');
+  assert.equal(emptyReferences.failureDiagnostic?.stage, 'request');
+  assert.equal(emptyReferences.attempted, false);
+  assert.equal(mock.calls.length, 0);
+  const duplicateContext = await explain({ ...context, opportunity: { ...context.opportunity, fact_ids: ['same', 'same'] } });
+  assert.equal(duplicateContext.reason, 'EXPLANATION_REFERENCE_CONTEXT_INVALID');
+  assert.equal(duplicateContext.attempted, false);
   assert.equal(mock.calls.length, 0);
 });
 
@@ -122,6 +139,7 @@ test('HTTP errors and transport timeouts make one attempt with sanitized uncerta
     assert.equal(receipt.costUncertain, true);
     assert.equal(receipt.costUsd, null);
     assert.equal(receipt.cumulativeReportedCostUsd, null);
+    assert.equal(receipt.failureDiagnostic?.stage, 'transport');
     assert.ok(receipt.cumulativeUpperBoundUsd > 0);
     assert.ok(!JSON.stringify(receipt).includes('never retain'));
   }
@@ -216,6 +234,7 @@ test('validated prior spend is included in cost receipts and gates new calls aga
   assert.equal(blocked.reason, 'EXPLANATION_BUDGET_LIMIT');
   assert.equal(blocked.attempted, false);
   assert.equal(blocked.attemptsUsed, 0);
+  assert.equal(blocked.failureDiagnostic?.stage, 'request');
   assert.equal(blocked.cumulativeReportedCostUsd, 0.49999);
   assert.equal(mock.calls.length, 1);
 });
@@ -239,6 +258,7 @@ test('future claim rejections identify the validator rule and retain only a boun
     ['The refund is $1,200.', 'credit_amount_claim'],
     ['The records were IRS-approved.', 'professional_review_claim'],
     ['Payment matches the coverage statement.', 'unsupported_payment_match'],
+    ['Annual payroll wages are $4,000.', 'unsupported_annualization'],
   ] as const) {
     const value = envelope(context);
     value.choices[0].message.content = JSON.stringify({ ...output(context), summary });
@@ -284,4 +304,157 @@ test('malformed or oversized parsed output and forged provider metadata never cr
   const receipt = await createOpenRouterExplainer({ approvedLiveCall: true, fetcher: mock.fetcher })(context);
   assert.equal(receipt.claimDiagnostic, undefined);
   assert.ok(!JSON.stringify(receipt).includes('never retain'));
+});
+
+test('reference diagnostics separate both fields and report type, count, duplicates and unknown IDs', async () => {
+  const context = await bakeryContext();
+  const value = envelope(context);
+  const known = context.opportunity.fact_ids[0];
+  const factIds: unknown[] = [known, known, 'unknown_fact', 17, ...Array.from({ length: 14 }, (_, index) => `extra_${index}`)];
+  const ruleIds: unknown[] = ['annual_fte', 'annual_fte', 'irc-45r', false, ...Array.from({ length: 5 }, (_, index) => `unknown_${index}`)];
+  value.choices[0].message.content = JSON.stringify({ ...output(context), fact_ids: factIds, rule_ids: ruleIds });
+  const receipt = await createOpenRouterExplainer({ approvedLiveCall: true, fetcher: mocked(value).fetcher })(context);
+  assert.equal(receipt.reason, 'EXPLANATION_REFERENCE');
+  assert.equal(receipt.failureDiagnostic?.stage, 'references');
+  assert.equal(receipt.referenceDiagnostic?.length, 2);
+  const facts = receipt.referenceDiagnostic!.find(issue => issue.field === 'fact_ids')!;
+  const rules = receipt.referenceDiagnostic!.find(issue => issue.field === 'rule_ids')!;
+  assert.deepEqual(facts.failureKinds, ['too_many', 'non_string', 'unknown_id', 'duplicate']);
+  assert.equal(facts.typeStatus, 'contains_non_strings');
+  assert.equal(facts.actualCount, 18);
+  assert.equal(facts.maxItems, 16);
+  assert.equal(facts.countStatus, 'too_many');
+  assert.equal(facts.nonStringCount, 1);
+  assert.deepEqual(facts.nonStringIndexes, [3]);
+  assert.deepEqual(facts.nonStringTypes, ['number']);
+  assert.equal(facts.duplicateCount, 1);
+  assert.equal(facts.invalidIdCount, 15);
+  assert.ok(facts.invalidIds.includes('unknown_fact'));
+  assert.ok(facts.expectedIds.includes(known));
+  assert.equal(rules.maxItems, 8);
+  assert.equal(rules.countStatus, 'too_many');
+  assert.equal(rules.duplicateCount, 1);
+  assert.ok(rules.invalidIds.includes('irc-45r'));
+  assert.ok(rules.expectedIds.includes('annual_fte'));
+  assert.ok(!rules.expectedIds.includes(known));
+});
+
+test('non-array references retain only type/status and the expected bounded allowlists', async () => {
+  const context = await bakeryContext();
+  const value = envelope(context);
+  value.choices[0].message.content = JSON.stringify({ ...output(context), fact_ids: 'offline-test-placeholder', rule_ids: null });
+  const receipt = await createOpenRouterExplainer({ approvedLiveCall: true, fetcher: mocked(value).fetcher })(context);
+  assert.equal(receipt.referenceDiagnostic?.length, 2);
+  for (const issue of receipt.referenceDiagnostic!) {
+    assert.deepEqual(issue.failureKinds, ['not_array']);
+    assert.equal(issue.typeStatus, 'not_array');
+    assert.equal(issue.actualCount, null);
+    assert.equal(issue.countStatus, 'not_array');
+    assert.deepEqual(issue.invalidIds, []);
+    assert.ok(issue.expectedIds.length > 0);
+  }
+  assert.ok(!JSON.stringify(receipt).includes('offline-test-placeholder'));
+});
+
+test('reference diagnostics redact invalid tokens and exact keys while preserving known derived IDs', async () => {
+  const context = await bakeryContext();
+  const derivedId = `derived:stated-employer-share:${'a'.repeat(24)}`;
+  context.opportunity.fact_ids = [derivedId, 'offline-test-placeholder', ...context.opportunity.fact_ids, ...Array.from({ length: 40 }, (_, index) => `known-fact:${index}`)];
+  const value = envelope(context);
+  value.choices[0].message.content = JSON.stringify({ ...output(context), fact_ids: ['offline-test-placeholder-wrong', 'https://example.test/private', 'Z'.repeat(80)], rule_ids: ['irc-45r'] });
+  const receipt = await createOpenRouterExplainer({ approvedLiveCall: true, fetcher: mocked(value).fetcher })(context);
+  const facts = receipt.referenceDiagnostic!.find(issue => issue.field === 'fact_ids')!;
+  assert.equal(facts.expectedIdCount, 47);
+  assert.equal(facts.expectedIds.length, 32);
+  assert.equal(facts.samplesTruncated, true);
+  assert.ok(facts.expectedIds.includes(derivedId));
+  assert.ok(facts.invalidIds.some(id => id.includes('[redacted]')));
+  assert.ok(facts.expectedIds.every(id => id.length <= 120));
+  for (const forbidden of ['offline-test-placeholder', 'https://', 'example.test', 'Z'.repeat(80)]) assert.ok(!JSON.stringify(receipt.referenceDiagnostic).includes(forbidden));
+});
+
+test('each response and output validation branch has fixed structured failure-stage evidence', async () => {
+  const context = await bakeryContext();
+  const outputEnvelope = (candidate: unknown) => {
+    const value = envelope(context);
+    value.choices[0].message.content = JSON.stringify(candidate);
+    return value;
+  };
+  const base = envelope(context);
+  const cases: { value: unknown | (() => Promise<Response>); stage: string; check: string }[] = [
+    { value: async () => new Response('not-json'), stage: 'response_json', check: 'EXPLANATION_RESPONSE_INVALID' },
+    { value: async () => new Response('x'.repeat(128_001)), stage: 'response_json', check: 'EXPLANATION_RESPONSE_LIMIT' },
+    { value: [], stage: 'response_shape', check: 'EXPLANATION_RESPONSE_INVALID' },
+    { value: { ...base, choices: [] }, stage: 'response_shape', check: 'EXPLANATION_RESPONSE_INVALID' },
+    { value: { ...base, choices: [null] }, stage: 'response_shape', check: 'EXPLANATION_RESPONSE_INVALID' },
+    { value: { ...base, model: 'wrong/model' }, stage: 'model', check: 'EXPLANATION_MODEL_MISMATCH' },
+    { value: { ...base, usage: {} }, stage: 'usage', check: 'EXPLANATION_USAGE_UNAVAILABLE' },
+    { value: { ...base, usage: { ...base.usage, total_tokens: 2000 } }, stage: 'usage', check: 'EXPLANATION_USAGE_INVALID' },
+    { value: { ...base, usage: { ...base.usage, prompt_tokens: 1_000_000, total_tokens: 1_000_100 } }, stage: 'usage', check: 'EXPLANATION_USAGE_INVALID' },
+    { value: { ...base, usage: { ...base.usage, completion_tokens: 601, total_tokens: 2101 } }, stage: 'usage', check: 'EXPLANATION_USAGE_INVALID' },
+    { value: { ...base, usage: { ...base.usage, cost: 0.51 } }, stage: 'usage', check: 'EXPLANATION_COST_EXCEEDS_BOUND' },
+    { value: { ...base, choices: [{ ...base.choices[0], finish_reason: 'length' }] }, stage: 'completion', check: 'EXPLANATION_NOT_END_TURN' },
+    { value: { ...base, choices: [{ ...base.choices[0], message: null }] }, stage: 'completion', check: 'EXPLANATION_NON_TEXT' },
+    { value: { ...base, choices: [{ ...base.choices[0], message: { role: 'user', content: '{}' } }] }, stage: 'completion', check: 'EXPLANATION_NON_TEXT' },
+    { value: { ...base, choices: [{ ...base.choices[0], message: { role: 'assistant', content: [] } }] }, stage: 'completion', check: 'EXPLANATION_NON_TEXT' },
+    { value: { ...base, choices: [{ ...base.choices[0], message: { ...base.choices[0].message, refusal: 'offline-test-placeholder' } }] }, stage: 'completion', check: 'EXPLANATION_NON_TEXT' },
+    { value: { ...base, choices: [{ ...base.choices[0], message: { ...base.choices[0].message, tool_calls: {} } }] }, stage: 'completion', check: 'EXPLANATION_NON_TEXT' },
+    { value: { ...base, choices: [{ ...base.choices[0], message: { ...base.choices[0].message, content: '{} trailing' } }] }, stage: 'output_json', check: 'EXPLANATION_JSON_INVALID' },
+    ...[null, [], 42, 'text'].map(candidate => ({ value: outputEnvelope(candidate), stage: 'output_shape', check: 'EXPLANATION_NOT_OBJECT' })),
+    { value: outputEnvelope({ ...output(context), ['offline-test-placeholder']: true }), stage: 'output_shape', check: 'EXPLANATION_FIELDS' },
+    { value: outputEnvelope({ summary: 'Partial evidence.', fact_ids: [], rule_ids: [] }), stage: 'output_shape', check: 'EXPLANATION_FIELDS' },
+    ...[{ summary: null }, { what_changed: false }, { summary: '  ' }, { summary: 'x'.repeat(601) }, { what_changed: 'x'.repeat(351) }].map(change => ({ value: outputEnvelope({ ...output(context), ...change }), stage: 'output_text', check: 'EXPLANATION_TEXT' })),
+    { value: outputEnvelope({ ...output(context), summary: 'The recorded payment is 999 dollars.' }), stage: 'numbers', check: 'EXPLANATION_NUMBER' },
+    { value: outputEnvelope({ ...output(context), summary: 'You are eligible.' }), stage: 'claim', check: 'EXPLANATION_CLAIM' },
+  ];
+  for (const item of cases) {
+    const mock = mocked(item.value);
+    const receipt = await createOpenRouterExplainer({ approvedLiveCall: true, fetcher: mock.fetcher })(context);
+    assert.equal(receipt.mode, 'deterministic_fallback');
+    assert.equal(receipt.failureDiagnostic?.stage, item.stage, item.check);
+    assert.equal(receipt.failureDiagnostic?.check, item.check);
+    assert.ok(Object.keys(receipt.failureDiagnostic!.details).length > 0);
+    assert.equal(mock.calls.length, 1);
+    assert.ok(!JSON.stringify(receipt).includes('offline-test-placeholder'));
+    if (item.stage === 'numbers') assert.equal(receipt.failureDiagnostic!.details.constraint, 'unsupported_number');
+  }
+});
+
+test('transport errors cannot inject arbitrary diagnostic codes or raw metadata', async () => {
+  const context = await bakeryContext();
+  const mock = mocked(async () => { throw Object.assign(new Error('EXPLANATION_PRIVATE_PROVIDER_DATA'), { referenceIssues: [{ field: 'fact_ids', unknownIdIndexes: [0] }] }); });
+  const receipt = await createOpenRouterExplainer({ approvedLiveCall: true, fetcher: mock.fetcher })(context);
+  assert.equal(receipt.reason, 'EXPLANATION_PROVIDER_FAILURE');
+  assert.equal(receipt.failureDiagnostic?.stage, 'transport');
+  assert.equal(receipt.referenceDiagnostic, undefined);
+  assert.ok(!JSON.stringify(receipt).includes('PRIVATE_PROVIDER_DATA'));
+});
+
+test('provider metadata that echoes the exact environment credential is omitted from receipts', async () => {
+  const context = await bakeryContext();
+  for (const field of ['model', 'id', 'provider'] as const) {
+    const value = { ...envelope(context), [field]: 'prefix-offline-test-placeholder-suffix' };
+    const receipt = await createOpenRouterExplainer({ approvedLiveCall: true, fetcher: mocked(value).fetcher })(context);
+    const receiptField = field === 'model' ? 'observedModel' : field === 'id' ? 'responseId' : 'observedProvider';
+    assert.equal(receipt[receiptField], null);
+    assert.ok(!JSON.stringify(receipt).includes('offline-test-placeholder'));
+    if (field === 'model') assert.equal(receipt.reason, 'EXPLANATION_MODEL_MISMATCH');
+  }
+});
+
+test('Oversized streaming provider output is cancelled before reading the complete allocation',async()=>{
+ const context=await bakeryContext();let pulls=0,cancelled=false;
+ const stream=new ReadableStream<Uint8Array>({pull(controller){pulls++;controller.enqueue(new Uint8Array(70_000));},cancel(){cancelled=true;}},{highWaterMark:0});
+ const mock=mocked(async()=>new Response(stream));
+ const receipt=await createOpenRouterExplainer({approvedLiveCall:true,fetcher:mock.fetcher})(context);
+ assert.equal(receipt.reason,'EXPLANATION_RESPONSE_LIMIT');assert.equal(receipt.mode,'deterministic_fallback');assert.equal(cancelled,true);assert.equal(pulls,2);assert.equal(mock.calls.length,1);
+});
+
+test('Reference rejection diagnostics redact complete AWS access-key patterns',async()=>{
+ const context=await bakeryContext();
+ for(const token of ['AKIAABCDEFGHIJKLMNOP','ASIA1234567890ABCDEF']){
+  const value=envelope(context);const answer=output(context);answer.fact_ids=[token];value.choices[0].message.content=JSON.stringify(answer);
+  const mock=mocked(value);const receipt=await createOpenRouterExplainer({approvedLiveCall:true,fetcher:mock.fetcher})(context);
+  assert.equal(receipt.reason,'EXPLANATION_REFERENCE');assert.ok(receipt.referenceDiagnostic);assert.ok(!JSON.stringify(receipt).includes(token));assert.match(JSON.stringify(receipt.referenceDiagnostic),/redacted/);
+ }
 });

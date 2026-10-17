@@ -1,4 +1,6 @@
 import { ANNUAL_IDS, EVIDENCE_IDS, type Explanation, type Fact, type Opportunity } from '../../packages/contracts/index.js';
+import {assertExplanationClaims} from './explanation-claims.js';
+export {ExplanationClaimError,type ExplanationClaimRule} from './explanation-claims.js';
 export type ExplanationContext={opportunity:Opportunity;facts:Fact[];previousSummary?:string};
 export type ExplanationReceipt={mode:'live_bedrock'|'live_openrouter'|'deterministic_fallback';explanation:Explanation;usage:{inputTokens:number|null;outputTokens:number|null;totalTokens:number|null};reason?:string};
 export function deterministicExplanation(context:ExplanationContext):Explanation {
@@ -6,23 +8,20 @@ export function deterministicExplanation(context:ExplanationContext):Explanation
 }
 const keys=['summary','what_changed','fact_ids','rule_ids'];
 function numberTokens(text:string):string[] {return (text.match(/\d[\d,]*(?:\.\d+)?/g)??[]).map(v=>String(Number(v.replaceAll(',',''))));}
-export type ExplanationClaimRule='eligibility_or_annual_claim'|'credit_amount_claim'|'professional_review_claim'|'unsupported_payment_match';
-/** Safe rule/offset metadata only; no generated text is retained on the error. */
-export class ExplanationClaimError extends Error {
-  constructor(readonly claimRule:ExplanationClaimRule,readonly claimMatch:{start:number;end:number}) {
-    super('EXPLANATION_CLAIM');this.name='ExplanationClaimError';
-  }
+export type ExplanationReferenceIssue={field:'fact_ids'|'rule_ids';notArray:boolean;actualCount:number|null;maxItems:16|8;nonStringIndexes:number[];unknownIdIndexes:number[];duplicateIndexes:number[]};
+export class ExplanationReferenceError extends Error {
+  constructor(readonly referenceIssues:ExplanationReferenceIssue[]){super('EXPLANATION_REFERENCE');this.name='ExplanationReferenceError';}
 }
-function rejectClaim(rule:ExplanationClaimRule,expression:RegExp,text:string):void {
-  const match=expression.exec(text);
-  if(match)throw new ExplanationClaimError(rule,{start:match.index,end:match.index+match[0].length});
-}
-function paymentClaimText(summary:string,changed:string):string {
-  // Only this complete output pair states unresolved matching with no companion
-  // prose. Keep other pairs under the original guard, including pronouns in
-  // what_changed that could contradict an uncertainty sentence in summary.
-  const standalone=summary.trim().toLowerCase()==='payment matching remains unconfirmed.'&&!changed.trim();
-  return (standalone?' '.repeat(summary.length):summary)+' '+changed;
+function referenceIssue(field:ExplanationReferenceIssue['field'],value:unknown,allow:readonly string[],maxItems:16|8):ExplanationReferenceIssue|null{
+  const issue:ExplanationReferenceIssue={field,notArray:!Array.isArray(value),actualCount:Array.isArray(value)?value.length:null,maxItems,nonStringIndexes:[],unknownIdIndexes:[],duplicateIndexes:[]};
+  if(!Array.isArray(value))return issue;
+  const seen=new Set<string>();
+  value.forEach((id,index)=>{
+    if(typeof id!=='string'){issue.nonStringIndexes.push(index);return;}
+    if(!allow.includes(id))issue.unknownIdIndexes.push(index);
+    if(seen.has(id))issue.duplicateIndexes.push(index);seen.add(id);
+  });
+  return value.length>maxItems||issue.nonStringIndexes.length||issue.unknownIdIndexes.length||issue.duplicateIndexes.length?issue:null;
 }
 /** A model describes deterministic findings; it cannot add amounts, IDs, or eligibility. */
 export function validateExplanation(value:unknown,context:ExplanationContext):Explanation {
@@ -30,14 +29,10 @@ export function validateExplanation(value:unknown,context:ExplanationContext):Ex
   const obj=value as Record<string,unknown>;
   if(Object.keys(obj).length!==4||!Object.keys(obj).every(k=>keys.includes(k)))throw new Error('EXPLANATION_FIELDS');
   if(typeof obj.summary!=='string'||typeof obj.what_changed!=='string'||!obj.summary.trim()||obj.summary.length>600||obj.what_changed.length>350)throw new Error('EXPLANATION_TEXT');
-  const ids=(v:unknown,allow:readonly string[],max:number)=>Array.isArray(v)&&v.length<=max&&v.every(x=>typeof x==='string'&&allow.includes(x))&&new Set(v).size===v.length;
-  if(!ids(obj.fact_ids,context.opportunity.fact_ids,16)||!ids(obj.rule_ids,[...ANNUAL_IDS,...EVIDENCE_IDS],8))throw new Error('EXPLANATION_REFERENCE');
+  const issues=[referenceIssue('fact_ids',obj.fact_ids,context.opportunity.fact_ids,16),referenceIssue('rule_ids',obj.rule_ids,[...ANNUAL_IDS,...EVIDENCE_IDS],8)].filter((issue):issue is ExplanationReferenceIssue=>issue!==null);
+  if(issues.length)throw new ExplanationReferenceError(issues);
   const text=obj.summary+' '+obj.what_changed;
-  rejectClaim('eligibility_or_annual_claim',/\b(?:eligible|qualif(?:y|ies|ied)|guaranteed|entitled|confirmed credit|credit (?:is|of)|tax (?:savings|refund)|you (?:can|will) claim|annual (?:checks|requirements) (?:(?:are|were|have been|had been) )?(?:met|satisfied|resolved|complete|verified|supported)|(?:meets?|satisf(?:y|ies|ied)) (?:all (?:the )?)?(?:credit|eligibility) (?:requirements|conditions))\b/i,text);
-  rejectClaim('credit_amount_claim',/\b(?:credit|refund|savings|tax benefit)\b.{0,40}\$?\s*\d/i,text);
-  rejectClaim('professional_review_claim',/\b(?:professionally (?:reviewed|approved|verified)|(?:professional|legal|tax) review (?:is |was |has been )?(?:complete|completed|approved|passed)|IRS[- ](?:approved|verified|certified)|(?:IRS|(?:tax |legal )?professional|accountant|lawyer)\b.{0,25}\b(?:reviewed|approved|verified|certified)|(?:reviewed|approved|verified|certified)\b.{0,20}\bby\b.{0,25}\b(?:professional|accountant|lawyer|IRS))\b/i,text);
-  const matchSupported=context.opportunity.evidence_checks.some(check=>check.requirement_id==='payment_to_coverage_match'&&check.result==='supported');
-  if(!matchSupported)rejectClaim('unsupported_payment_match',/(?:payment.{0,35}(?:matches|matched|linked|reconciled|confirmed)|(?:matched|confirmed).{0,25}payment)/i,paymentClaimText(obj.summary as string,obj.what_changed as string));
+  assertExplanationClaims(obj.summary as string,obj.what_changed as string,context.opportunity.evidence_checks);
   const allowedNumbers=new Set<string>();
   const add=(value:unknown)=>{if(value!==null&&value!==undefined)numberTokens(String(value)).forEach(v=>allowedNumbers.add(v));};
   add(context.opportunity.tax_year);
