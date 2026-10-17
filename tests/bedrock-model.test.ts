@@ -24,7 +24,7 @@ function mockedSdk(payload:MockResponse) {
     requestHandler:{
       async handle(request:{method:string;hostname:string;path:string;body?:unknown}) {
         requests.push({method:request.method,hostname:request.hostname,path:request.path,body:JSON.parse(typeof request.body==='string'?request.body:Buffer.from(request.body as Uint8Array).toString('utf8')) as Record<string,unknown>});
-        assert.equal(request.path,'/model/us.openai.gpt-6-luna/converse','unexpected AWS operation (including CountTokens or streaming)');
+        assert.equal(request.path,'/model/mistral.ministral-3-14b-instruct/converse','unexpected AWS operation (including CountTokens or streaming)');
         return {response:{statusCode:200,headers:{'content-type':'application/json'},body:Buffer.from(JSON.stringify(payload))}};
       }
     }
@@ -38,20 +38,20 @@ async function receiptFor(payload:MockResponse) {
   return {receipt,requests:mock.requests};
 }
 
-test('Luna uses the pinned Strands Agent and AWS serializer for one strict non-streaming Converse request',async()=>{
+test('Ministral 14B uses the pinned Strands Agent and AWS serializer for one strict non-streaming Converse request',async()=>{
   const mock=mockedSdk(response());
   const result=await mock.invoke('Describe only the supplied deterministic evidence.',AbortSignal.timeout(2_000));
   assert.equal(mock.requests.length,1);
   const request=mock.requests[0]!;
   assert.equal(request.method,'POST');
   assert.equal(request.hostname,'bedrock-runtime.us-east-1.amazonaws.com');
-  assert.equal(request.path,'/model/us.openai.gpt-6-luna/converse');
+  assert.equal(request.path,'/model/mistral.ministral-3-14b-instruct/converse');
   assert.deepEqual(request.body.inferenceConfig,{maxTokens:350});
   assert.equal('toolConfig' in request.body,false);
   assert.equal('reasoning' in request.body,false);
   assert.equal('reasoning_effort' in request.body,false);
   assert.equal('temperature' in request.body,false);
-  assert.deepEqual(request.body.additionalModelRequestFields,{text:{format:{strict:true}}});
+  assert.equal('additionalModelRequestFields' in request.body,false,'OpenAI-specific request fields must never reach the fixed Mistral target');
   const output=request.body.outputConfig as {textFormat:{type:string;structure:{jsonSchema:{name:string;schema:string}}}};
   assert.equal(output.textFormat.type,'json_schema');
   assert.equal(output.textFormat.structure.jsonSchema.name,'tally_explanation');
@@ -60,6 +60,15 @@ test('Luna uses the pinned Strands Agent and AWS serializer for one strict non-s
   assert.deepEqual(schema.required,['summary','what_changed','fact_ids','rule_ids']);
   assert.equal(schema.additionalProperties,false);
   assert.deepEqual(schema.properties,{summary:{type:'string'},what_changed:{type:'string'},fact_ids:{type:'array',items:{type:'string'}},rule_ids:{type:'array',items:{type:'string'}}});
+  assert.equal(MODEL.model_id,'mistral.ministral-3-14b-instruct');
+  assert.equal(MODEL.region,'us-east-1');
+  assert.equal(MODEL.inference_type,'in_region');
+  assert.deepEqual(MODEL.destination_regions,['us-east-1']);
+  assert.deepEqual(MODEL.foundation_model_arns,['arn:aws:bedrock:us-east-1::foundation-model/mistral.ministral-3-14b-instruct']);
+  assert.equal('inference_profile_arn_template' in MODEL,false);
+  assert.equal('default_project_arn_template' in MODEL,false);
+  assert.equal(BEDROCK_CONFIG.requestTimeout,20_000);
+  assert.equal(BEDROCK_CONFIG.stream,false);
   assert.equal(BEDROCK_CONFIG.useNativeTokenCount,false);
   assert.equal(BEDROCK_CONFIG.clientConfig.maxAttempts,1);
   assert.equal(result.stopReason,'endTurn');
@@ -140,4 +149,12 @@ test('native JSON shape does not bypass unknown ID, numeric, claim, or text-leng
     assert.equal(receipt.mode,'deterministic_fallback');
     assert.deepEqual(receipt.explanation,deterministicExplanation(context));
   }
+});
+
+test('obsolete model and alternate region are rejected before any invoker entry',async()=>{
+  let calls=0;
+  for(const changed of [{...env,BEDROCK_MODEL_ID:'us.openai.gpt-6-luna'},{...env,AWS_REGION:'us-west-2'}]){
+    await assert.rejects(explainWithStrands(context,{approvedLiveCall:true,env:changed,invoke:async()=>{calls++;throw new Error('UNEXPECTED_INVOCATION');}}),/MODEL_TARGET_MISMATCH/);
+  }
+  assert.equal(calls,0);
 });

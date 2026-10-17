@@ -38,9 +38,12 @@ assert.deepEqual(worker.Environment.Variables.BEDROCK_MODEL_ID, { Ref: 'BedrockM
 assert.equal(template.Parameters.BedrockModelId.Default, MODEL.model_id);
 assert.deepEqual(template.Parameters.BedrockModelId.AllowedValues, [MODEL.model_id]);
 assert.equal(template.Parameters.BedrockModelArn, undefined);
-assert.equal(MODEL.model_id,'us.openai.gpt-6-luna');
+assert.equal(MODEL.model_id,'mistral.ministral-3-14b-instruct');
+assert.equal(MODEL.foundation_model_id,MODEL.model_id);
+assert.equal(MODEL.inference_type,'in_region');
 assert.equal(MODEL.region,'us-east-1');
-assert.deepEqual(MODEL.destination_regions,['us-east-1','us-east-2','us-west-2']);
+assert.deepEqual(MODEL.destination_regions,['us-east-1']);
+assert.deepEqual(MODEL.foundation_model_arns,['arn:aws:bedrock:us-east-1::foundation-model/mistral.ministral-3-14b-instruct']);
 assert.deepEqual(resources.TallyHttpApi.Properties.Auth, { EnableIamAuthorizer: true, DefaultAuthorizer: 'AWS_IAM' });
 const expectedRoutes = new Map([
   ['GET /api/state', 'AWS_IAM'],
@@ -92,17 +95,12 @@ assert.deepEqual(workerSecrets[0].Action, ['secretsmanager:GetSecretValue']);
 assert.deepEqual(workerSecrets[0].Resource, {Ref:'BoxCredentialsSecretArn'});
 assert.ok(apiStatements.every(statement => statement.Action.every(action => !action.startsWith('bedrock:'))));
 const bedrockStatements=resources.WorkerRole.Properties.Policies[0].PolicyDocument.Statement.filter(statement=>statement.Action.some(action=>action.startsWith('bedrock:')));
-assert.equal(bedrockStatements.length,3);
-for(const statement of bedrockStatements)assert.deepEqual(statement.Action,['bedrock:InvokeModel']);
-const profile=bedrockStatements.find(statement=>statement.Sid==='InvokeExactLunaProfile');
-assert.deepEqual(profile.Resource,{'Fn::Sub':MODEL.inference_profile_arn_template});
-assert.equal(profile.Condition,undefined);
-const project=bedrockStatements.find(statement=>statement.Sid==='InvokeLunaDefaultProject');
-assert.deepEqual(project.Resource,{'Fn::Sub':MODEL.default_project_arn_template});
-const foundations=bedrockStatements.find(statement=>statement.Sid==='InvokeLunaDestinationsThroughProfile');
-assert.deepEqual(foundations.Resource,[...MODEL.foundation_model_arns]);
-assert.deepEqual(foundations.Condition,{StringEquals:{'bedrock:InferenceProfileArn':{'Fn::Sub':MODEL.inference_profile_arn_template}}});
-assert.ok(bedrockStatements.every(statement=>!JSON.stringify(statement).includes('global.openai')));
+assert.deepEqual(bedrockStatements,[{
+  Sid:'InvokeExactMinistral14B',
+  Effect:'Allow',
+  Action:['bedrock:InvokeModel'],
+  Resource:MODEL.foundation_model_arns[0],
+}]);
 const makefile=await readFile(new URL('../Makefile',import.meta.url),'utf8');
 for(const name of ['ApiFunction','WorkerFunction'])assert.ok(makefile.includes(`build-${name}:`));
 console.log('Offline SAM contract checks passed: exact routes, auth, queue limits, runtime, IAM scopes, existing secrets, and disabled live gate.');

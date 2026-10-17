@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {assertApprovedLiveFlow} from '../services/runtime/live-api.js';
 import {createProductionRuntime} from '../services/runtime/production.js';
+import {MODEL} from '../packages/contracts/model.js';
 
 const template=JSON.parse(readFileSync(new URL('../infra/template.yaml',import.meta.url),'utf8'));
 type Parameters=Record<string,string>;
@@ -73,6 +74,24 @@ test('one SQS source caps normal worker concurrency at2 without an unavailable a
  assert.deepEqual(worker.Events.Jobs.Properties.ScalingConfig,{MaximumConcurrency:2});
  assert.equal(worker.Events.Jobs.Properties.BatchSize,1);
  assert.equal(worker.Events.Jobs.Properties.MaximumBatchingWindowInSeconds,0);
+ assert.equal(template.Parameters.LiveProvidersEnabled.Default,'false');
+ assert.equal(template.Parameters.ApprovedLiveFlow.Default,'false');
+});
+
+
+test('regional selected model grants only InvokeModel on its one exact foundation model',()=>{
+ const exactArn='arn:aws:bedrock:us-east-1::foundation-model/mistral.ministral-3-14b-instruct';
+ assert.equal(MODEL.model_id,'mistral.ministral-3-14b-instruct');
+ assert.equal(MODEL.foundation_model_id,MODEL.model_id);
+ assert.equal(MODEL.inference_type,'in_region');
+ assert.deepEqual(MODEL.destination_regions,['us-east-1']);
+ assert.deepEqual(MODEL.foundation_model_arns,[exactArn]);
+ assert.equal(template.Parameters.BedrockModelId.Default,MODEL.model_id);
+ assert.deepEqual(template.Parameters.BedrockModelId.AllowedValues,[MODEL.model_id]);
+ const modelStatements=(role:string)=>template.Resources[role].Properties.Policies.flatMap((policy:any)=>policy.PolicyDocument.Statement).filter((statement:any)=>statement.Action.some((action:string)=>action.startsWith('bedrock:')||action.startsWith('aws-marketplace:')));
+ assert.deepEqual(modelStatements('ApiRole'),[]);
+ assert.deepEqual(modelStatements('WorkerRole'),[{Sid:'InvokeExactMinistral14B',Effect:'Allow',Action:['bedrock:InvokeModel'],Resource:exactArn}]);
+ assert.deepEqual(template.Resources.WorkerFunction.Properties.Environment.Variables.BEDROCK_MODEL_ID,{Ref:'BedrockModelId'});
  assert.equal(template.Parameters.LiveProvidersEnabled.Default,'false');
  assert.equal(template.Parameters.ApprovedLiveFlow.Default,'false');
 });
