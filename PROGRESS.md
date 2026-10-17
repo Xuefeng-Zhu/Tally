@@ -10,9 +10,9 @@ Google Doc sections 18–19 and the supplied Pasted text.txt were read. The orig
 - P01 Box AI: not run; exact source/folder access, response-capture readiness, AI entitlement/quota and scoped run permission remain pending.
 - P02 Strands/Bedrock: not run; AWS sign-in/read-only profile metadata completed, actual response/usage and scoped run permission still unverified.
 - AWS deployment: approved disabled stack CREATE_COMPLETE (17 resources); both Linux ARM64 runtime packaging probes passed. Live gates remain false; Box identity and provider E2E remain unverified after the failed token preflight.
-- GitHub: only a private push was authorized. Fresh repository metadata now reports PUBLIC, so pushing is held pending explicit public-push authorization or verified private restoration. No visibility change was performed. The completion report records the verified remote SHA. Publication/submission remain unauthorized.
+- GitHub: the user explicitly authorized a normal push of the reviewed source and documentation to the existing PUBLIC repository after being told they would be publicly visible. No visibility change or force push is authorized. The completion report records the verified remote SHA. Hackathon submission and public demo sharing remain unauthorized.
 
-No Box AI extraction, Bedrock invocation, public publication, submission or external messaging performed. Two approved normal-application credential/token attempts are recorded below; the latest actual token response was HTTP 400 `invalid_client`. The approved disabled AWS deployment and packaging-only probes are recorded below. Separately approved sign-in/read-only metadata and Box app creation are recorded below. The separately authorized private code push is recorded above.
+No Box AI extraction, Bedrock invocation, hackathon submission or external messaging performed. Two approved normal-application credential/token attempts are recorded below; the latest actual token response was HTTP 400 `invalid_client`. The approved disabled AWS deployment and packaging-only probes are recorded below. Separately approved sign-in/read-only metadata and Box app creation are recorded below. The public source push has separate explicit authorization as recorded above.
 
 ## Verified milestones
 - Repository initialized at the requested existing git parent.
@@ -84,6 +84,6 @@ Saved local API assertions confirmed profile revision 1, ledger revision 2, 11 f
 
 **154/154 full-suite tests passed with zero failures/skips**, receipt `.artifacts/verification/local-e2e-full-tests.tap`, SHA256 `3ed48e6fb26a2d30b20105ce2137ebcc9c8aa8386c764e88ac76caab40371206`. The focused suite passed **64/64**, receipt `.artifacts/verification/local-e2e-focused-tests.tap`, SHA256 `2d85e564a747df4b2a5d7a6287f13310745ae7ec5491004a15066a41cd4a63c3`; TypeScript passed. Three new runtime integration tests are recorded in commit `d4383d2`; the completion report records the verified remote SHA. Both live gates remain false and real provider/application E2E remains NOT RUN.
 
-## Current repository visibility hold
+## Public repository push authorization
 
-Fresh repository metadata reports PUBLIC after earlier private status. Only a private push was authorized, so no new push is permitted under that existing approval. The current docs and test commits may be retained locally; public-push authorization or verified private restoration is required before a later push. No repository visibility mutation was performed. The completion report records the verified remote SHA.
+The push was initially held when fresh metadata reported PUBLIC after earlier private status. The user then explicitly approved pushing the pending reviewed code and documentation after being told they would be publicly visible. This authorizes a normal push to the existing remote; it does not authorize a visibility change, force push, Box authentication retry or hackathon submission. The completion report records the verified remote SHA.
